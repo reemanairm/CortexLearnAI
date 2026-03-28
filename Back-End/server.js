@@ -33,12 +33,6 @@ const startServer = async () => {
     await connectDB();
     console.log('MongoDB connection established');
 
-    app.use(express.static(path.join(__dirname,"../Front-End/dist")));
-
-    app.get(/.*/,(req, res) => {
-      res.sendFile(path.join(__dirname,"../Front-End/dist/index.html"));
-    });
-
     const PORT = process.env.PORT || 8000;
     app.listen(PORT, () => {
       console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
@@ -91,6 +85,13 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/help', helpRoutes);
 
 app.use(errorHandler);
+
+//server
+app.use(express.static(path.join(__dirname,"../Front-End/dist")));
+
+    app.get(/.*/,(req, res) => {
+      res.sendFile(path.join(__dirname,"../Front-End/dist/index.html"));
+    });
 
 // 404 Handler
 app.use((req, res) => {
