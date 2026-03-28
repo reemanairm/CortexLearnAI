@@ -105,7 +105,7 @@ const LearningProgressPanel = () => {
                     chapter.status === 'in_progress' ? 'bg-indigo-500/10 text-indigo-400' :
                     'bg-slate-700 text-slate-400'
                   }`}>
-                    {chapter.status.replace('_', ' ')}
+                    {chapter.status?.replace('_', ' ') || 'Unknown'}
                   </span>
                 </div>
                 {chapter.status === 'completed' ? (
