@@ -24,7 +24,7 @@ const FlashcardPage = ({ chapterId: propChapterId }) => {
 
   useEffect(() => {
     fetchCards();
-  }, [id]);
+  }, [id, chapterId]);
 
   const fetchCards = async () => {
     try {

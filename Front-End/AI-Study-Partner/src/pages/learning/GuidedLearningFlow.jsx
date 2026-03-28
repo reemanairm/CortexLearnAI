@@ -15,6 +15,8 @@ import toast from 'react-hot-toast';
 import documentService from '../../services/documentservice';
 import progressService from '../../services/progressService';
 import aiService from '../../services/aiservice';
+import flashcardService from '../../services/flashcardservice';
+import quizService from '../../services/quizservice';
 import Loader from '../../components/common/Loader';
 import FlashcardPage from '../flashcards/FlashcardPage';
 import QuizTakePage from '../quizzes/QuizTakePage';
@@ -128,9 +130,9 @@ const GuidedLearningFlow = () => {
   const onQuizComplete = (results) => {
     setQuizResult(results);
     updateProgress({
-      quizScore: results.score,
-      status: results.score >= 70 ? 'completed' : 'needs_revision',
-      weakTopics: results.weakTopics || []
+      quizScore: results.quiz?.score || 0,
+      status: 'completed',
+      weakTopics: results.quiz?.weakTopics || []
     });
     setStep(4);
   };
@@ -239,7 +241,7 @@ const GuidedLearningFlow = () => {
 
   // STEP 4: RESULTS
   if (step === 4) {
-    const isPassing = quizResult?.score >= 70;
+    const isPassing = (quizResult?.quiz?.score || 0) >= 70;
     
     return (
       <div className="max-w-3xl mx-auto py-12 px-4 animate-in zoom-in-95 duration-500">
@@ -250,16 +252,26 @@ const GuidedLearningFlow = () => {
                 <div className="absolute top-0 inset-x-0 h-2 bg-orange-500"></div>
             )}
             
-            <div className="mb-8">
-                <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-6 border-4 ${isPassing ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
+            <div className="flex flex-col items-center justify-center mb-10">
+                <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6 border-2 border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.1)]">
                     {isPassing ? (
                         <Trophy className="text-emerald-500" size={48} />
                     ) : (
                         <AlertCircle className="text-orange-500" size={48} />
                     )}
                 </div>
+                
+                <div className="text-center mb-6">
+                    <span className="text-5xl font-black text-white">{quizResult?.quiz?.score || 0}%</span>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-2">Mastery Score</p>
+                </div>
+
                 <h1 className="text-4xl font-black text-white mb-2">{isPassing ? 'Great Job!' : 'Keep Practicing'}</h1>
-                <p className="text-slate-400 font-medium">Session complete for {chapter.title}</p>
+                <p className="text-slate-400 font-medium">
+                    {isPassing 
+                      ? "You've successfully mastered the concepts in this chapter." 
+                      : "You've finished the materials, but might want to review some topics."}
+                </p>
             </div>
 
             <div className="bg-slate-800/50 rounded-2xl p-8 mb-10 border border-slate-700/50 inline-block min-w-[200px]">

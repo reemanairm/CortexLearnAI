@@ -92,8 +92,9 @@ ${text ? text.substring(0, 15000) : "No text provided, rely on the document file
         correctAnswer: { type: SchemaType.STRING, description: "The exact text of the correct option." },
         explanation: { type: SchemaType.STRING, description: "Brief explanation of why the answer is correct." },
         difficulty: { type: SchemaType.STRING, enum: ["easy", "medium", "hard"] },
+        topic: { type: SchemaType.STRING, description: "The specific sub-topic or concept this question tests (e.g., 'Array Methods', 'CSS Flexbox')." },
       },
-      required: ["question", "options", "correctAnswer", "explanation", "difficulty"],
+      required: ["question", "options", "correctAnswer", "explanation", "difficulty", "topic"],
     },
   };
 

@@ -220,6 +220,27 @@ const QuizResultPage = () => {
         </button>
       </div>
 
+      {/* Weak Topics / Areas for Improvement */}
+      {quizInfo.weakTopics && quizInfo.weakTopics.length > 0 && (
+        <div className="bg-orange-500/10 border border-orange-500/20 rounded-3xl p-6 sm:p-8 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-orange-500/20 rounded-lg">
+              <Sparkles className="text-orange-400" size={20} />
+            </div>
+            <h3 className="text-xl font-bold text-white">Focus Areas for Revision</h3>
+          </div>
+          <p className="text-slate-400 text-sm mb-6">We've identified these specific concepts that you might want to review based on your incorrect answers:</p>
+          <div className="flex flex-wrap gap-3">
+            {quizInfo.weakTopics.map((topic, i) => (
+              <div key={i} className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-sm font-bold flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                {topic}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Detailed Review Section */}
       {quiz.results && quiz.results.length > 0 && (
         <div className="mt-12 space-y-6">

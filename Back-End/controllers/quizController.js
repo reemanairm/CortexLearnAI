@@ -123,6 +123,7 @@ export const submitQuiz = async (req, res, next) => {
         // Process answers
         let correctCount = 0;
         const userAnswers = [];
+        const weakTopics = new Set();
 
         answers.forEach((answer, idx) => {
             const { questionIndex, selectedAnswer } = answer;
@@ -146,7 +147,11 @@ export const submitQuiz = async (req, res, next) => {
 
             const isCorrect = selectedAnswer === question.correctAnswer;
 
-            if (isCorrect) correctCount++;
+            if (isCorrect) {
+                correctCount++;
+            } else if (question.topic) {
+                weakTopics.add(question.topic);
+            }
 
             userAnswers.push({
                 questionIndex,
@@ -174,7 +179,8 @@ export const submitQuiz = async (req, res, next) => {
                 correctCount,
                 totalQuestions: quiz.totalQuestions,
                 percentage: score,
-                userAnswers
+                userAnswers,
+                weakTopics: Array.from(weakTopics)
             },
             message: 'Quiz submitted successfully'
         });
@@ -223,6 +229,15 @@ export const getQuizResults = async (req, res, next) => {
             };
         });
 
+        // Calculate weak topics from results
+        const weakTopics = new Set();
+        quiz.userAnswers.forEach(ans => {
+            if (!ans.isCorrect) {
+                const q = quiz.questions[ans.questionIndex];
+                if (q && q.topic) weakTopics.add(q.topic);
+            }
+        });
+
         res.status(200).json({
             success: true,
             data: {
@@ -232,7 +247,8 @@ export const getQuizResults = async (req, res, next) => {
                     document: quiz.documentId,
                     score: quiz.score,
                     totalQuestions: quiz.totalQuestions,
-                    completedAt: quiz.completedAt
+                    completedAt: quiz.completedAt,
+                    weakTopics: Array.from(weakTopics)
                 },
                 results: detailedResults
             }

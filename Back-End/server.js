@@ -95,12 +95,11 @@ app.use(express.static(path.join(__dirname,"../Front-End/AI-Study-Partner/dist")
 
 // 404 Handler
 app.use((req, res) => {
-
   res.status(404).json({
     success: false,
     error: 'Route not found',
-    ststusCode: 404
-  })
+    statusCode: 404
+  });
 });
 // server startup is now handled in startServer() above
 

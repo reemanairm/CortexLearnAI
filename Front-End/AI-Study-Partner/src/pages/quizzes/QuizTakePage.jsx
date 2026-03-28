@@ -31,20 +31,6 @@ const QuizTakePage = ({ quizId: propQuizId, chapterId, onComplete }) => {
       setLoading(true);
       const res = await quizService.getQuizById(quizId);
       setQuiz(res.data);
-      
-      // Debug log to check quiz structure
-      console.log('Loaded quiz:', {
-        id: res.data._id,
-        title: res.data.title,
-        questionsCount: res.data.questions?.length,
-        sampleQuestions: res.data.questions?.slice(0, 2).map(q => ({
-          question: q.question,
-          optionsCount: q.options?.length,
-          hasCorrectAnswer: !!q.correctAnswer,
-          correctAnswer: q.correctAnswer
-        }))
-      });
-      
       setCurrentQuestion(0);
     } catch (error) {
       console.error('Failed to load quiz', error);
