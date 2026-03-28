@@ -283,15 +283,23 @@ const DocumentListPage = () => {
 
                 {/* Status Indicators */}
                 <div className="px-6 py-3 flex gap-2 flex-wrap flex-grow">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border transition-colors ${doc.hasFlashcards ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 group-hover:border-purple-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
-                    Flashcards
-                  </span>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border transition-colors ${doc.hasQuiz ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 group-hover:border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
-                    Quizzes
-                  </span>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border bg-blue-500/10 text-blue-400 border-blue-500/20 group-hover:border-blue-500/40`}>
-                    Chat Ready
-                  </span>
+                  {doc.status === 'failed' ? (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-semibold border bg-red-500/10 text-red-400 border-red-500/20">
+                      Processing Failed
+                    </span>
+                  ) : (
+                    <>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border transition-colors ${doc.hasFlashcards ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 group-hover:border-purple-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+                        Flashcards
+                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border transition-colors ${doc.hasQuiz ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 group-hover:border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+                        Quizzes
+                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border bg-blue-500/10 text-blue-400 border-blue-500/20 group-hover:border-blue-500/40`}>
+                        Chat Ready
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* Actions Footer */}

@@ -15,7 +15,8 @@ import {
   Eye,
   Trash2,
   Edit2,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import documentService from '../../services/documentservice';
@@ -299,6 +300,16 @@ const DocumentDetailPage = () => {
             <Eye size={18} className="text-slate-400" />
             Open Original PDF
           </a>
+
+          {document.status === 'failed' && (
+            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-400 leading-tight">Processing Limited</p>
+                <p className="text-xs text-red-300/70 mt-1">Some AI features might be restricted because we couldn't fully analyze this document's structure.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* AI Actions */}
