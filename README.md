@@ -71,15 +71,19 @@ Users can upload study documents and interact with them using AI to improve unde
 ## Installation
 
 Clone the repository
+
 git clone https://github.com/reemanairm/CortexLearnAI.git⁠
 
 Navigate to the project directory
+
 cd cortexlearn-ai
 
 Install dependencies
+
 npm install
 
 Run development server
+
 npm run dev
 
 ---
