@@ -5,7 +5,7 @@ import { extractTextFromPDF } from '../utils/pdfParser.js';
 import { chunkText } from '../utils/textChunker.js';
 import { generateStructuredNotes, detectChapters } from '../utils/geminiService.js';
 import { generatePDF } from '../utils/pdfGenerator.js';
-import { fetchTranscript } from 'youtube-transcript';
+import { fetchTranscript } from 'youtube-transcript/dist/youtube-transcript.esm.js';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
