@@ -1,0 +1,60 @@
+export const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000";
+
+export const API_PATHS = {
+  AUTH: {
+    REGISTER: "/api/auth/register",
+    LOGIN: "/api/auth/login",
+    GET_PROFILE: "/api/auth/profile",
+    UPDATE_PROFILE: "/api/auth/profile",
+    CHANGE_PASSWORD: "/api/auth/change-password",
+    FORGOT_PASSWORD: "/api/auth/forgot-password",
+    RESET_PASSWORD: (token) => `/api/auth/reset-password/${token}`,
+    GOOGLE_AUTH: "/api/auth/google",
+  },
+
+  DOCUMENTS: {
+    UPLOAD: "/api/documents/upload",
+    GET_DOCUMENTS: "/api/documents",
+    GET_DOCUMENT_BY_ID: (id) => `/api/documents/${id}`,
+    UPDATE_DOCUMENT: (id) => `/api/documents/${id}`,
+    DELETE_DOCUMENT: (id) => `/api/documents/${id}`,
+  },
+
+  AI: {
+    GENERATE_FLASHCARDS: "/api/aiRoutes/generate-flashcards",
+    GENERATE_QUIZ: "/api/aiRoutes/generate-quiz",
+    GENERATE_SUMMARY: "/api/aiRoutes/generate-summary",
+    CHAT: "/api/aiRoutes/chat",
+    EXPLAIN_CONCEPT: "/api/aiRoutes/explain-concept",
+    GET_CHAT_HISTORY: (documentId) => `/api/aiRoutes/chat-history/${documentId}`,
+    DELETE_CHAT_HISTORY: (documentId) => `/api/aiRoutes/chat-history/${documentId}`,
+    CLEAR_ALL_CHAT_HISTORY: "/api/aiRoutes/chat-history",
+    DELETE_CHAT_MESSAGE: (documentId, messageId) => `/api/aiRoutes/chat-history/${documentId}/message/${messageId}`,
+    EDIT_CHAT_MESSAGE: (documentId, messageId) => `/api/aiRoutes/chat-history/${documentId}/message/${messageId}`,
+  },
+
+  FLASHCARDS: {
+    GET_ALL_FLASHCARD_SETS: "/api/flashcard",
+    GET_FLASHCARDS_FOR_DOC: (documentId) => `/api/flashcard/${documentId}`,
+    REVIEW_FLASHCARD: (cardId) => `/api/flashcard/${cardId}/review`,
+    TOGGLE_STAR: (cardId) => `/api/flashcard/${cardId}/star`,
+    DELETE_FLASHCARD_SET: (id) => `/api/flashcard/${id}`,
+  },
+
+  QUIZZES: {
+    GET_ALL_QUIZZES: "/api/quizzes",
+    GET_QUIZZES_FOR_DOC: (documentId) => `/api/quizzes/${documentId}`,
+    GET_QUIZ_BY_ID: (id) => `/api/quizzes/quiz/${id}`,
+    SUBMIT_QUIZ: (id) => `/api/quizzes/${id}/submit`,
+    GET_QUIZ_RESULTS: (id) => `/api/quizzes/${id}/results`,
+    DELETE_QUIZ: (id) => `/api/quizzes/${id}`,
+  },
+
+  PROGRESS: {
+    GET_DASHBOARD: "/api/progress/dashboard",
+  },
+
+  HELP: {
+    SUBMIT: "/api/help",
+  },
+};
