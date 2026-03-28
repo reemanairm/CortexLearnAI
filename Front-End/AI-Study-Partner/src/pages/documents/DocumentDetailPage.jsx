@@ -405,7 +405,13 @@ const DocumentDetailPage = () => {
         </div>
 
         {/* Chapters & Topics Section */}
-        {document.chapters && document.chapters.length > 0 && (
+        {document.status === 'processing' && (!document.chapters || document.chapters.length === 0) ? (
+          <div className="mt-4 p-8 bg-slate-900/40 border border-slate-800 rounded-2xl border-dashed flex flex-col items-center text-center">
+            <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h4 className="font-bold text-white mb-1">Generating Chapters...</h4>
+            <p className="text-xs text-slate-500 max-w-[200px]">AI is dividing your document into logical study modules.</p>
+          </div>
+        ) : document.chapters && document.chapters.length > 0 && (
           <div className="mt-4">
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-2 mb-4">Topics & Chapters</h3>
             <div className="flex flex-col gap-3">

@@ -283,7 +283,12 @@ const DocumentListPage = () => {
 
                 {/* Status Indicators */}
                 <div className="px-6 py-3 flex gap-2 flex-wrap flex-grow">
-                  {doc.status === 'failed' ? (
+                  {doc.status === 'processing' ? (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-semibold border bg-indigo-500/10 text-indigo-400 border-indigo-500/20 flex items-center gap-2">
+                      <div className="w-2 h-2 border border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                      AI Processing...
+                    </span>
+                  ) : doc.status === 'failed' ? (
                     <span className="text-xs px-2.5 py-1 rounded-full font-semibold border bg-red-500/10 text-red-400 border-red-500/20">
                       Processing Failed
                     </span>
