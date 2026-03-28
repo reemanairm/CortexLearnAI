@@ -87,10 +87,10 @@ app.use('/api/help', helpRoutes);
 app.use(errorHandler);
 
 //server
-app.use(express.static(path.join(__dirname,"../Front-End/dist")));
+app.use(express.static(path.join(__dirname,"../Front-End/AI-Study-Partner/dist")));
 
     app.get(/.*/,(req, res) => {
-      res.sendFile(path.join(__dirname,"../Front-End/dist/index.html"));
+      res.sendFile(path.join(__dirname,"../Front-End/AI-Study-Partner/dist/index.html"));
     });
 
 // 404 Handler
