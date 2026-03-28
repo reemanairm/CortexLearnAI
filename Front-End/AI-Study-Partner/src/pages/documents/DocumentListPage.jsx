@@ -37,7 +37,8 @@ const DocumentListPage = () => {
   const handleFileUpload = async (file) => {
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPDF) {
       toast.error('Please upload a PDF file');
       return;
     }
@@ -55,7 +56,7 @@ const DocumentListPage = () => {
       fetchDocuments();
     } catch (error) {
       console.error('Error uploading document:', error);
-      toast.error(error.message || 'Failed to upload document');
+      toast.error(error.error || error.message || 'Failed to upload document');
     } finally {
       setUploading(false);
       setIsDragOver(false);
