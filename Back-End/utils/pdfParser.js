@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
 
 /**
  * Extract text from PDF file
@@ -12,21 +11,23 @@ export const extractTextFromPDF = async (filePath) => {
   try {
     const dataBuffer = await fs.readFile(filePath);
     
-    // Handle different CJS export styles
-    const pdfParser = (typeof pdf === 'function') ? pdf : (pdf.default || pdf);
+    // Handle the modern pdf-parse (v2.x) API
+    // It's a class that needs instantiation
+    const { PDFParse } = require('pdf-parse');
+    const parser = new PDFParse({ data: dataBuffer });
     
-    // pdf-parse expects a Buffer
-    const data = await pdfParser(dataBuffer);
+    // getText() returns an object with 'text' and 'total' (numPages)
+    const result = await parser.getText();
 
-    console.log(`Successfully extracted ${data.text?.length || 0} characters from PDF: ${filePath}`);
+    console.log(`Successfully extracted ${result.text?.length || 0} characters from PDF: ${filePath}`);
 
     return {
-      text: data.text,
-      numPages: data.numpages,
-      info: data.info,
+      text: result.text,
+      numPages: result.total,
+      info: {}, // Modern API might store this differently, but we mainly need text
     };
   } catch (error) {
     console.error("PDF parsing error:", error);
-    throw new Error("Failed to extract text from PDF");
+    throw new Error(`PDF Parser Error: ${error.message}`);
   }
 };
