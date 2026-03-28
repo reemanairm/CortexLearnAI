@@ -5,7 +5,7 @@ import { extractTextFromPDF } from '../utils/pdfParser.js';
 import { chunkText } from '../utils/textChunker.js';
 import { generateStructuredNotes, detectChapters } from '../utils/geminiService.js';
 import { generatePDF } from '../utils/pdfGenerator.js';
-import { YoutubeTranscript } from 'youtube-transcript';
+import { fetchTranscript } from 'youtube-transcript';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
@@ -126,7 +126,7 @@ export const processVideoLink = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide a videoUrl', statusCode: 400 });
     }
 
-    const transcriptArray = await YoutubeTranscript.fetchTranscript(videoUrl);
+    const transcriptArray = await fetchTranscript(videoUrl);
     const transcriptStr = transcriptArray.map(t => t.text).join(' ');
 
     const structuredNotes = await generateStructuredNotes(transcriptStr);
