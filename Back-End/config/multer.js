@@ -8,7 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const uploadDir = path.join(__dirname, '../uploads/documents');
 if (!fs.existsSync(uploadDir)) {
+  console.log(`Creating upload directory at: ${uploadDir}`);
   fs.mkdirSync(uploadDir, { recursive: true });
+} else {
+  console.log(`Using existing upload directory at: ${uploadDir}`);
 }
 
 // Configure storage

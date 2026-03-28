@@ -1,5 +1,7 @@
 import fs from 'fs/promises';
-import { PDFParse } from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
 
 /**
  * Extract text from PDF file
@@ -9,9 +11,14 @@ import { PDFParse } from 'pdf-parse';
 export const extractTextFromPDF = async (filePath) => {
   try {
     const dataBuffer = await fs.readFile(filePath);
-    // pdf-parse expects a Uint8Array, not a Buffer
-    const parser = new PDFParse(new Uint8Array(dataBuffer));
-    const data = await parser.getText();
+    
+    // Handle different CJS export styles
+    const pdfParser = (typeof pdf === 'function') ? pdf : (pdf.default || pdf);
+    
+    // pdf-parse expects a Buffer
+    const data = await pdfParser(dataBuffer);
+
+    console.log(`Successfully extracted ${data.text?.length || 0} characters from PDF: ${filePath}`);
 
     return {
       text: data.text,

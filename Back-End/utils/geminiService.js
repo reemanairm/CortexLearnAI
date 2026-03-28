@@ -37,7 +37,7 @@ export const generateFlashcards = async (text, count = 10, fileData = null) => {
 
   try {
     const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-flash', // upgraded from flash-lite for better multimodal reasoning
+      model: 'gemini-1.5-flash', // stable version for maximum availability
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
@@ -100,7 +100,7 @@ ${text ? text.substring(0, 15000) : "No text provided, rely on the document file
 
   try {
     const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
@@ -139,7 +139,7 @@ ${text ? "Text context:\n" + text.substring(0, 20000) : ""}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const contentParts = [prompt];
     // If a file was uploaded and passed in, use it for multimodal context
     if (fileData) {
@@ -179,7 +179,7 @@ Answer:
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const contentParts = [prompt];
     if (fileData) {
       contentParts.push(fileData);
@@ -205,7 +205,7 @@ ${context.substring(0, 10000)}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error) {
@@ -232,7 +232,7 @@ ${transcript.substring(0, 30000)}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error) {
@@ -246,14 +246,20 @@ ${transcript.substring(0, 30000)}
 --------------------------------------------------- */
 export const detectChapters = async (text) => {
   const prompt = `
-Analyze the following educational document and divide it into logical chapters or topics.
-Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
+Analyze the following document and divide it into a minimum of 3 and a maximum of 8 logical chapters/topics. 
+CRITICAL: You MUST provide a structured breakdown regardless of the document type.
 
-Each object in the array should have:
-- title: The name of the chapter or topic (e.g., "Chapter 1 - Introduction" or "Topic: Gradient Descent")
-- summary: A brief 1-2 sentence overview of what is covered in this chapter/topic
-- startQuote: The exact first few words (up to 10 words) indicating where this chapter starts in the text
-- endQuote: The exact last few words (up to 10 words) indicating where this chapter ends in the text
+Rules for splitting:
+1. If the document has clear headings (e.g., "# Chapter 1", "Introduction"), use those as the primary chapters.
+2. If it is a Coding/Program file: Each complete program, class, or large function block must be its own chapter titled by the program's purpose.
+3. If it is a set of Q&A or Exercises: Group every 5 questions into a "Section".
+4. If it is unstructured prose/paragraphs: Divide it into 4 equal sections titled "Part 1: [Topic]", "Part 2: [Topic]", etc., based on the narrative flow.
+
+Structure required for EACH chapter:
+- title: A descriptive and engaging name.
+- summary: A 2-sentence overview.
+- startQuote: The first ~5-10 words of the section.
+- endQuote: The last ~5-10 words of the section.
 
 Document Text:
 ${text.substring(0, 25000)}
@@ -275,7 +281,7 @@ ${text.substring(0, 25000)}
 
   try {
     const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,

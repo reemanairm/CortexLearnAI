@@ -54,15 +54,22 @@ export const generateFlashcards = async (req, res, next) => {
 
     const document = await Document.findOne({
       _id: documentId,
-      userId: req.user._id,
-      status: 'ready'
+      userId: req.user._id
     });
 
     if (!document) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or not ready',
+        error: 'Document not found',
         statusCode: 404
+      });
+    }
+
+    if (document.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: `Document is currently ${document.status}. Please wait for processing to complete.`,
+        statusCode: 400
       });
     }
 
@@ -147,15 +154,22 @@ export const generateQuiz = async (req, res, next) => {
 
     const document = await Document.findOne({
       _id: documentId,
-      userId: req.user._id,
-      status: 'ready'
+      userId: req.user._id
     });
 
     if (!document) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or not ready',
+        error: 'Document not found',
         statusCode: 404
+      });
+    }
+
+    if (document.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: `Document is ${document.status}. Quiz generation requires a ready document.`,
+        statusCode: 400
       });
     }
 
@@ -222,15 +236,22 @@ export const generateSummary = async (req, res, next) => {
   try {
     const document = await Document.findOne({
       _id: req.body.documentId,
-      userId: req.user._id,
-      status: 'ready'
+      userId: req.user._id
     });
 
     if (!document) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or not ready',
+        error: 'Document not found',
         statusCode: 404
+      });
+    }
+
+    if (document.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: 'Document is not ready for summary generation',
+        statusCode: 400
       });
     }
 
@@ -277,15 +298,22 @@ export const chat = async (req, res, next) => {
 
     const document = await Document.findOne({
       _id: documentId,
-      userId: req.user._id,
-      status: 'ready'
+      userId: req.user._id
     });
 
     if (!document) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or not ready',
+        error: 'Document not found',
         statusCode: 404
+      });
+    }
+
+    if (document.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: 'Document is not ready for chat',
+        statusCode: 400
       });
     }
 
@@ -371,15 +399,22 @@ export const explainConcept = async (req, res, next) => {
 
     const document = await Document.findOne({
       _id: documentId,
-      userId: req.user._id,
-      status: 'ready'
+      userId: req.user._id
     });
 
     if (!document) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or not ready',
+        error: 'Document not found',
         statusCode: 404
+      });
+    }
+
+    if (document.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: 'Document is not ready for concept explanation',
+        statusCode: 400
       });
     }
 

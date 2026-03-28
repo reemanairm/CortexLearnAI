@@ -87,6 +87,9 @@ const documentSchema = new mongoose.Schema(
     enum: ["processing", "ready", "failed"],
     default: "processing",
   },
+  errorReason: {
+    type: String,
+  },
 },
 {
   timestamps: true,

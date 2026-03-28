@@ -70,28 +70,87 @@ const processTextAndChapters = async (documentId, text) => {
     const chunks = chunkText(text, 500, 50);
     const rawChapters = await detectChapters(text);
 
-    let mappedChapters = rawChapters.map((cap, index) => {
-        let startIdx = 0;
-        let endIdx = chunks.length - 1;
+    let mappedChapters = [];
+    for (let index = 0; index < rawChapters.length; index++) {
+        const cap = rawChapters[index];
+        let startIdx = (index === 0) ? 0 : -1;
+        let endIdx = -1;
         
-        chunks.forEach(c => {
-           if(cap.startQuote && c.content.includes(cap.startQuote)) startIdx = c.chunkIndex;
-           if(cap.endQuote && c.content.includes(cap.endQuote)) endIdx = c.chunkIndex;
-        });
+        // Helper to find best chunk for a quote
+        const findBestChunk = (quote, searchFrom = 0) => {
+            if (!quote || quote.trim().length < 4) return -1;
+            const cleanQuote = quote.toLowerCase().trim();
+            
+            for (let i = searchFrom; i < chunks.length; i++) {
+                if (chunks[i].content.toLowerCase().includes(cleanQuote)) return i;
+                
+                // Try partial match if exactly not found (first 15 chars)
+                const partial = cleanQuote.substring(0, 15);
+                if (chunks[i].content.toLowerCase().includes(partial)) return i;
+            }
+            return -1;
+        };
 
-        // Ensure chronological consistency
-        if(index > 0 && startIdx < mappedChapters[index-1].endChunkIndex) {
-            startIdx = mappedChapters[index-1].endChunkIndex;
+        const searchFrom = (index > 0 && mappedChapters[index-1]) ? mappedChapters[index-1].endChunkIndex : 0;
+        const foundStart = findBestChunk(cap.startQuote, searchFrom);
+        if (foundStart !== -1) startIdx = foundStart;
+        
+        const foundEnd = findBestChunk(cap.endQuote, startIdx !== -1 ? startIdx : searchFrom);
+        if (foundEnd !== -1) endIdx = foundEnd;
+
+        // Fallbacks for consistency
+        if (startIdx === -1) {
+            startIdx = (index > 0) ? mappedChapters[index-1].endChunkIndex : 0;
         }
-        if(endIdx < startIdx) endIdx = chunks.length - 1;
+        
+        if (endIdx === -1 || endIdx < startIdx) {
+            // If it's the last chapter, go to the end
+            if (index === rawChapters.length - 1) {
+                endIdx = chunks.length - 1;
+            } else {
+                endIdx = Math.min(startIdx + 5, chunks.length - 1);
+            }
+        }
 
-        return {
+        mappedChapters.push({
            title: cap.title,
            summary: cap.summary,
-           startChunkIndex: startIdx || 0,
-           endChunkIndex: endIdx || (chunks.length - 1)
-        };
+           startChunkIndex: startIdx,
+           endChunkIndex: endIdx
+        });
+    }
+
+    // Final pass to fix any overlaps or gaps
+    mappedChapters = mappedChapters.map((cap, i) => {
+        if (i > 0 && cap.startChunkIndex < mappedChapters[i-1].endChunkIndex) {
+            cap.startChunkIndex = mappedChapters[i-1].endChunkIndex;
+        }
+        if (cap.endChunkIndex < cap.startChunkIndex) {
+            cap.endChunkIndex = cap.startChunkIndex;
+        }
+        return cap;
     });
+
+    // Procedural Fallback if AI fails or returns too few chapters for a large doc
+    if (!mappedChapters || mappedChapters.length === 0 || (chunks.length > 10 && mappedChapters.length < 2)) {
+        console.log(`Applying procedural fallback for document ${documentId}`);
+        const numFallbacks = Math.max(3, Math.min(6, Math.ceil(chunks.length / 5)));
+        const chunkSize = Math.ceil(chunks.length / numFallbacks);
+        
+        mappedChapters = [];
+        for (let i = 0; i < numFallbacks; i++) {
+            const start = i * chunkSize;
+            const end = Math.min((i + 1) * chunkSize - 1, chunks.length - 1);
+            if (start < chunks.length) {
+                mappedChapters.push({
+                    title: `Section ${i + 1}: Content Overview`,
+                    summary: `This section covers a portion of the document for structured learning.`,
+                    startChunkIndex: start,
+                    endChunkIndex: end
+                });
+            }
+        }
+    }
 
     await Document.findByIdAndUpdate(documentId, {
       extractedText: text,
@@ -102,7 +161,10 @@ const processTextAndChapters = async (documentId, text) => {
     console.log(`Document ${documentId} processed successfully with chapters`);
   } catch (error) {
     console.error(`Error processing text/chapters for ${documentId}:`, error);
-    await Document.findByIdAndUpdate(documentId, { status: 'failed' });
+    await Document.findByIdAndUpdate(documentId, { 
+      status: 'failed',
+      errorReason: error.message || 'Chapter analysis failed'
+    });
   }
 };
 
@@ -113,7 +175,10 @@ const processPDF = async (documentId, filePath) => {
     await processTextAndChapters(documentId, text);
   } catch (error) {
     console.error(`Error extracting PDF for ${documentId}:`, error);
-    await Document.findByIdAndUpdate(documentId, { status: 'failed' });
+    await Document.findByIdAndUpdate(documentId, { 
+      status: 'failed',
+      errorReason: error.message || 'PDF extraction failed'
+    });
   }
 };
 
@@ -127,7 +192,22 @@ export const processVideoLink = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide a videoUrl', statusCode: 400 });
     }
 
-    const transcriptArray = await fetchTranscript(videoUrl);
+    let transcriptArray;
+    try {
+      transcriptArray = await fetchTranscript(videoUrl);
+    } catch (transcriptError) {
+      console.error('YouTube transcript error:', transcriptError);
+      let errorMessage = 'Failed to fetch video transcript.';
+      if (transcriptError.message?.includes('too many requests') || transcriptError.message?.includes('captcha')) {
+        errorMessage = 'YouTube has blocked our request due to high traffic. Please try again later or provide a PDF/Text version of the notes.';
+      }
+      return res.status(429).json({ 
+        success: false, 
+        error: errorMessage, 
+        statusCode: 429 
+      });
+    }
+
     const transcriptStr = transcriptArray.map(t => t.text).join(' ');
 
     const structuredNotes = await generateStructuredNotes(transcriptStr);
