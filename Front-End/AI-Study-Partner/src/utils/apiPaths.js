@@ -1,4 +1,4 @@
-export const BASE_URL = "https://cortexlearnai.onrender.com";
+export const BASE_URL = "/api";
 
 export const API_PATHS = {
   AUTH: {
