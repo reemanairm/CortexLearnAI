@@ -20,6 +20,7 @@ import HelpHistoryPage from './pages/help/HelpHistoryPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ProtectedAdminRoute from './components/auth/ProtectedAdminRoute';
 import AppLayout from './components/layout/AppLayout';
+import GuidedLearningFlow from './pages/learning/GuidedLearningFlow';
 import { AuthContext } from './context/AuthContext';
 
 const App = () => {
@@ -91,6 +92,14 @@ const App = () => {
             element={
               <AppLayout>
                 <FlashcardPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/documents/:id/learning/:chapterId"
+            element={
+              <AppLayout>
+                <GuidedLearningFlow />
               </AppLayout>
             }
           />

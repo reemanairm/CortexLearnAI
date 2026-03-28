@@ -51,6 +51,27 @@ const documentSchema = new mongoose.Schema(
     },
   ],
 
+  chapters: [
+    {
+      title: {
+        type: String,
+        required: true,
+      },
+      startChunkIndex: {
+        type: Number,
+        default: 0,
+      },
+      endChunkIndex: {
+        type: Number,
+        default: 0,
+      },
+      summary: {
+        type: String,
+        default: "",
+      }
+    }
+  ],
+
   uploadDate: {
     type: Date,
     default: Date.now,

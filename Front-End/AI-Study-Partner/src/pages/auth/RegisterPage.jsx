@@ -207,7 +207,7 @@ const RegisterPage = () => {
             {/* Google OAuth Button */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_BASE_URL || 'http://localhost:8000'}/api/auth/google`}
+              onClick={() => window.location.href = `${import.meta.env.VITE_BASE_URL || (import.meta.env.PROD ? "" : "http://localhost:8000")}/api/auth/google`}
               className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 border border-slate-700 text-white hover:bg-white/10 transition-all duration-300 group"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

@@ -8,8 +8,9 @@ import aiService from '../../services/aiservice';
 import HelpWidget from '../../components/common/HelpWidget';
 import AIChatModal from '../../components/common/AIChatModal';
 
-const QuizTakePage = () => {
-  const { quizId } = useParams();
+const QuizTakePage = ({ quizId: propQuizId, chapterId, onComplete }) => {
+  const { quizId: paramQuizId } = useParams();
+  const quizId = propQuizId || paramQuizId;
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -145,7 +146,14 @@ const QuizTakePage = () => {
 
       await quizService.submitQuiz(quizId, payload);
       toast.success('Quiz submitted successfully! 🎉');
-      navigate(`/quizzes/${quizId}/results`);
+      
+      if (onComplete) {
+        // Fetch results for onComplete
+        const res = await quizService.getQuizResults(quizId);
+        onComplete(res.data);
+      } else {
+        navigate(`/quizzes/${quizId}/results`);
+      }
     } catch (error) {
       console.error('Submit error:', error);
       const errorMessage = error.message || error.error || 'Submission failed';

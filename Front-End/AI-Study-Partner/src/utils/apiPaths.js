@@ -1,4 +1,4 @@
-export const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000";
+export const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.PROD ? "" : "http://localhost:8000");
 
 export const API_PATHS = {
   AUTH: {
@@ -14,6 +14,7 @@ export const API_PATHS = {
 
   DOCUMENTS: {
     UPLOAD: "/api/documents/upload",
+    VIDEO_PROCESS: "/api/documents/video",
     GET_DOCUMENTS: "/api/documents",
     GET_DOCUMENT_BY_ID: (id) => `/api/documents/${id}`,
     UPDATE_DOCUMENT: (id) => `/api/documents/${id}`,
@@ -52,6 +53,8 @@ export const API_PATHS = {
 
   PROGRESS: {
     GET_DASHBOARD: "/api/progress/dashboard",
+    GET_CHAPTER_PROGRESS: (docId) => `/api/progress/document/${docId}/chapters`,
+    UPDATE_CHAPTER_PROGRESS: (docId, chapId) => `/api/progress/document/${docId}/chapter/${chapId}`,
   },
 
   HELP: {

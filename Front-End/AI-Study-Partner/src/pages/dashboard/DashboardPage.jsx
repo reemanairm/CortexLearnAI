@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
 import HelpWidget from '../../components/common/HelpWidget';
 import progressService from '../../services/progressService';
+import LearningProgressPanel from './LearningProgressPanel';
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -170,6 +171,9 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Learning Progress / Mastery Panel */}
+      <LearningProgressPanel />
 
       {/* Recent Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">

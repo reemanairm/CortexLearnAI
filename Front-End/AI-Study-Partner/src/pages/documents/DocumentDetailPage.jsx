@@ -393,6 +393,35 @@ const DocumentDetailPage = () => {
           </div>
         </div>
 
+        {/* Chapters & Topics Section */}
+        {document.chapters && document.chapters.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-2 mb-4">Topics & Chapters</h3>
+            <div className="flex flex-col gap-3">
+              {document.chapters.map((chapter) => (
+                <div key={chapter._id} className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-4 hover:border-indigo-500/30 transition-all group shadow-sm shadow-slate-900/50">
+                  <h4 className="font-bold text-white text-sm mb-1">{chapter.title}</h4>
+                  <p className="text-xs text-slate-400 mb-3 line-clamp-2 leading-relaxed">{chapter.summary}</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}`)}
+                      className="flex-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold py-2 rounded-lg transition-colors border border-indigo-500/20"
+                    >
+                      Start Learning
+                    </button>
+                    <button
+                      onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}?mode=revision`)}
+                      className="flex-1 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-lg transition-colors border border-orange-500/20"
+                    >
+                      Revision
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Right Area: Chat & Summary */}

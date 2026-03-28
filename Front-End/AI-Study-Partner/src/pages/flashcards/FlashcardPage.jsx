@@ -8,8 +8,9 @@ import Loader from '../../components/common/Loader';
 import HelpWidget from '../../components/common/HelpWidget';
 import AIChatModal from '../../components/common/AIChatModal';
 
-const FlashcardPage = () => {
+const FlashcardPage = ({ chapterId: propChapterId }) => {
   const { id } = useParams();
+  const chapterId = propChapterId || useParams().chapterId; // Support both prop and URL param
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -29,8 +30,13 @@ const FlashcardPage = () => {
     try {
       setLoading(true);
       const res = await flashcardService.getFlashcardsForDocument(id);
-      // Backend returns an array of Flashcard Sets, we want the cards from the latest set
-      const sets = res.data || [];
+      let sets = res.data || [];
+      
+      // Filter by chapterId if provided
+      if (chapterId) {
+        sets = sets.filter(s => s.chapterId === chapterId);
+      }
+      
       setCards(sets.length > 0 ? sets[0].cards : []);
       setCurrentIndex(0);
       setIsFlipped(false);

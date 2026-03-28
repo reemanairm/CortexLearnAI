@@ -41,11 +41,21 @@ const getDocumentById = async (id) => {
     }
 };
 
+const processVideo = async (data) => {
+    try {
+        const response = await axiosInstance.post(API_PATHS.DOCUMENTS.VIDEO_PROCESS || '/documents/video', data);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: 'Failed to process video' };
+    }
+};
+
 const documentService = {
     getDocuments,
     uploadDocument,
     deleteDocument,
     getDocumentById,
+    processVideo,
 };
 
 export default documentService;

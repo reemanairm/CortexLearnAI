@@ -11,6 +11,10 @@ const flashcardSchema = new mongoose.Schema({
     ref: 'Document',
     required: true
   },
+  chapterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false
+  },
   title: {
     type: String,
     default: 'Untitled Flashcard Set'

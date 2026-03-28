@@ -68,11 +68,25 @@ export const generateFlashcards = async (req, res, next) => {
 
     const fileData = await getFileDataForGemini(document);
 
+    // Filter text if chapterId is provided
+    let textToProcess = document.extractedText;
+    const { chapterId } = req.body;
+    let targetChapter = null;
+
+    if (chapterId && document.chapters && document.chapters.length > 0) {
+      targetChapter = document.chapters.id(chapterId); // mongoose array lookup
+      if (targetChapter) {
+        // combine chunks for this chapter
+        const chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
+        textToProcess = chapterChunks.map(c => c.content).join('\n\n');
+      }
+    }
+
     // Generate flashcards using Gemini
     const cards = await geminiService.generateFlashcards(
-      document.extractedText,
+      textToProcess,
       limit,
-      fileData
+      targetChapter ? null : fileData // Do not send full file if scoped to chapter
     );
 
     if (!cards || cards.length === 0) {
@@ -96,6 +110,7 @@ export const generateFlashcards = async (req, res, next) => {
     const flashcardSet = await Flashcard.create({
       userId: req.user._id,
       documentId: document._id,
+      chapterId: targetChapter ? targetChapter._id : undefined,
       cards: cards.map(card => ({
         question: card.question,
         answer: card.answer,
@@ -146,12 +161,25 @@ export const generateQuiz = async (req, res, next) => {
 
     const fileData = await getFileDataForGemini(document);
 
+    // Filter text if chapterId is provided
+    let textToProcess = document.extractedText;
+    const { chapterId } = req.body;
+    let targetChapter = null;
+
+    if (chapterId && document.chapters && document.chapters.length > 0) {
+      targetChapter = document.chapters.id(chapterId);
+      if (targetChapter) {
+        const chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
+        textToProcess = chapterChunks.map(c => c.content).join('\n\n');
+      }
+    }
+
     // Generate quiz using Gemini
     const questions = await geminiService.generateQuiz(
-      document.extractedText,
+      textToProcess,
       parseInt(numQuestions),
       req.body.difficulty || 'medium',
-      fileData
+      targetChapter ? null : fileData // Do not send full file if scoped to chapter
     );
 
     // ensure we actually received questions
@@ -167,7 +195,8 @@ export const generateQuiz = async (req, res, next) => {
     const quiz = await Quiz.create({
       userId: req.user._id,
       documentId: document._id,
-      title: title || `${document.title} - Quiz`,
+      chapterId: targetChapter ? targetChapter._id : undefined,
+      title: title || (targetChapter ? `${document.title} - ${targetChapter.title} Quiz` : `${document.title} - Quiz`),
       questions: questions,
       totalQuestions: questions.length,
       userAnswers: [],

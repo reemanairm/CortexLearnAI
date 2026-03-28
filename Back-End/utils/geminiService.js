@@ -212,3 +212,80 @@ ${context.substring(0, 10000)}
     throw new Error('Failed to explain concept');
   }
 };
+
+/* ---------------------------------------------------
+   Generate Structured Notes from Transcript
+--------------------------------------------------- */
+export const generateStructuredNotes = async (transcript) => {
+  const prompt = `
+You are an expert educational AI. Convert the following video transcript into structured study notes.
+Include:
+- A clear Title at the very top (e.g. # Video Title)
+- Structured sections with headings
+- Key concepts and definitions
+- Examples if any
+- A brief summary at the end
+
+Transcript:
+${transcript.substring(0, 30000)}
+`;
+
+  try {
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error('Gemini API (Notes) error:', error);
+    throw new Error('Failed to generate structured notes');
+  }
+};
+
+/* ---------------------------------------------------
+   Detect Chapters or Topics
+--------------------------------------------------- */
+export const detectChapters = async (text) => {
+  const prompt = `
+Analyze the following educational document and divide it into logical chapters or topics.
+Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
+
+Each object in the array should have:
+- title: The name of the chapter or topic (e.g., "Chapter 1 - Introduction" or "Topic: Gradient Descent")
+- summary: A brief 1-2 sentence overview of what is covered in this chapter/topic
+- startQuote: The exact first few words (up to 10 words) indicating where this chapter starts in the text
+- endQuote: The exact last few words (up to 10 words) indicating where this chapter ends in the text
+
+Document Text:
+${text.substring(0, 25000)}
+`;
+
+  const schema = {
+    type: SchemaType.ARRAY,
+    items: {
+      type: SchemaType.OBJECT,
+      properties: {
+        title: { type: SchemaType.STRING },
+        summary: { type: SchemaType.STRING },
+        startQuote: { type: SchemaType.STRING },
+        endQuote: { type: SchemaType.STRING }
+      },
+      required: ["title", "summary", "startQuote", "endQuote"],
+    },
+  };
+
+  try {
+    const model = ai.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+      }
+    });
+    const result = await model.generateContent(prompt);
+    let chapters = JSON.parse(result.response.text());
+    return chapters;
+  } catch (error) {
+    console.error('Gemini API (Chapters) error:', error);
+    // Fallback if AI fails or returns malformed response
+    return [{ title: "General Discussion", summary: "Main topics discussed in this document.", startQuote: "", endQuote: "" }];
+  }
+};

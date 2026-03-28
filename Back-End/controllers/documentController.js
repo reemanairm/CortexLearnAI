@@ -3,6 +3,10 @@ import Flashcard from '../models/Flashcard.js';
 import Quiz from '../models/Quiz.js';
 import { extractTextFromPDF } from '../utils/pdfParser.js';
 import { chunkText } from '../utils/textChunker.js';
+import { generateStructuredNotes, detectChapters } from '../utils/geminiService.js';
+import { generatePDF } from '../utils/pdfGenerator.js';
+import { YoutubeTranscript } from 'youtube-transcript';
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
 
@@ -26,7 +30,7 @@ export const uploadDocument = async (req, res, next) => {
     }
 
     // Construct the URL for the uploaded file
-    const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 8000}`;
     const fileUrl = `${baseUrl}/uploads/documents/${req.file.filename}`;
 
     // Create document record
@@ -59,28 +63,103 @@ export const uploadDocument = async (req, res, next) => {
   }
 };
 
+// Helper function to process PDF text and extract chapters
+const processTextAndChapters = async (documentId, text) => {
+  try {
+    const chunks = chunkText(text, 500, 50);
+    const rawChapters = await detectChapters(text);
+
+    let mappedChapters = rawChapters.map((cap, index) => {
+        let startIdx = 0;
+        let endIdx = chunks.length - 1;
+        
+        chunks.forEach(c => {
+           if(cap.startQuote && c.content.includes(cap.startQuote)) startIdx = c.chunkIndex;
+           if(cap.endQuote && c.content.includes(cap.endQuote)) endIdx = c.chunkIndex;
+        });
+
+        // Ensure chronological consistency
+        if(index > 0 && startIdx < mappedChapters[index-1].endChunkIndex) {
+            startIdx = mappedChapters[index-1].endChunkIndex;
+        }
+        if(endIdx < startIdx) endIdx = chunks.length - 1;
+
+        return {
+           title: cap.title,
+           summary: cap.summary,
+           startChunkIndex: startIdx || 0,
+           endChunkIndex: endIdx || (chunks.length - 1)
+        };
+    });
+
+    await Document.findByIdAndUpdate(documentId, {
+      extractedText: text,
+      chunks: chunks,
+      chapters: mappedChapters,
+      status: 'ready'
+    });
+    console.log(`Document ${documentId} processed successfully with chapters`);
+  } catch (error) {
+    console.error(`Error processing text/chapters for ${documentId}:`, error);
+    await Document.findByIdAndUpdate(documentId, { status: 'failed' });
+  }
+};
+
 // Helper function to process PDF
 const processPDF = async (documentId, filePath) => {
   try {
     const { text } = await extractTextFromPDF(filePath);
-
-    // Create chunks
-    const chunks = chunkText(text, 500, 50);
-
-    // Update document
-    await Document.findByIdAndUpdate(documentId, {
-      extractedText: text,
-      chunks: chunks,
-      status: 'ready'
-    });
-
-    console.log(`Document ${documentId} processed successfully`);
+    await processTextAndChapters(documentId, text);
   } catch (error) {
-    console.error(`Error processing document ${documentId}:`, error);
+    console.error(`Error extracting PDF for ${documentId}:`, error);
+    await Document.findByIdAndUpdate(documentId, { status: 'failed' });
+  }
+};
 
-    await Document.findByIdAndUpdate(documentId, {
-      status: 'failed'
+// @desc    Upload Video Link
+// @route   POST /api/documents/video
+// @access  Private
+export const processVideoLink = async (req, res, next) => {
+  try {
+    const { videoUrl } = req.body;
+    if (!videoUrl) {
+      return res.status(400).json({ success: false, error: 'Please provide a videoUrl', statusCode: 400 });
+    }
+
+    const transcriptArray = await YoutubeTranscript.fetchTranscript(videoUrl);
+    const transcriptStr = transcriptArray.map(t => t.text).join(' ');
+
+    const structuredNotes = await generateStructuredNotes(transcriptStr);
+
+    const titleMatch = structuredNotes.match(/^#+\s*(.+)/m);
+    let generatedTitle = titleMatch ? titleMatch[1].trim() : `Video Notes - ${new Date().toLocaleDateString()}`;
+
+    const filename = `video_${crypto.randomBytes(6).toString('hex')}.pdf`;
+    const outputPath = await generatePDF(generatedTitle, structuredNotes, filename);
+
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 8000}`;
+    const fileUrl = `${baseUrl}/uploads/documents/${filename}`;
+
+    const document = await Document.create({
+      userId: req.user._id,
+      title: generatedTitle,
+      fileName: filename,
+      filePath: fileUrl,
+      fileSize: Buffer.byteLength(structuredNotes, 'utf8'),
+      status: 'processing'
     });
+
+    // Process document in background
+    processTextAndChapters(document._id, structuredNotes).catch(console.error);
+
+    res.status(201).json({
+      success: true,
+      data: document,
+      message: 'Video submitted successfully. Processing in progress...'
+    });
+
+  } catch (error) {
+    next(error);
   }
 };
 

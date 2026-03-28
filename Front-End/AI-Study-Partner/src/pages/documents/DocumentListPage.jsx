@@ -10,6 +10,8 @@ const DocumentListPage = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [processingVideo, setProcessingVideo] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -58,6 +60,28 @@ const DocumentListPage = () => {
       setUploading(false);
       setIsDragOver(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleVideoSubmit = async (e) => {
+    e.preventDefault();
+    if (!videoUrl.trim()) return;
+
+    try {
+      setProcessingVideo(true);
+      const res = await documentService.processVideo({ videoUrl: videoUrl.trim() });
+      toast.success('Video processed successfully! 🎉');
+      setVideoUrl('');
+      if (res.data?._id) {
+        navigate(`/documents/${res.data._id}`);
+      } else {
+        fetchDocuments();
+      }
+    } catch (error) {
+      console.error('Error processing video:', error);
+      toast.error(error.response?.data?.error || error.message || 'Failed to process video');
+    } finally {
+      setProcessingVideo(false);
     }
   };
 
@@ -126,7 +150,7 @@ const DocumentListPage = () => {
 
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
+          disabled={uploading || processingVideo}
           className="group relative overflow-hidden rounded-xl p-[1px] shrink-0"
         >
           <span className="absolute inset-0 bg-linear-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-xl opacity-70 group-hover:opacity-100 transition-opacity duration-300 bg-[length:200%_auto] animate-gradient"></span>
@@ -237,7 +261,7 @@ const DocumentListPage = () => {
             Upload a textbook, lecture slides, or study guide to instantly generate flashcards, quizzes, and chat with your content.
           </p>
           <button
-            disabled={uploading}
+            disabled={uploading || processingVideo}
             className="group relative overflow-hidden rounded-xl p-[1px] cursor-pointer"
           >
             <span className="absolute inset-0 bg-linear-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-xl opacity-70 group-hover:opacity-100 transition-opacity duration-300 bg-[length:200%_auto] animate-gradient"></span>
@@ -247,6 +271,32 @@ const DocumentListPage = () => {
           </button>
         </div>
       )}
+
+      {/* Video to Notes Input Section */}
+      <div className="w-full bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-3xl p-8 mt-8">
+        <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+          <Sparkles className="text-indigo-400" /> Video to Notes
+        </h2>
+        <p className="text-slate-400 mb-6">Paste a YouTube video link to automatically generate structured study notes and learning materials.</p>
+        <form onSubmit={handleVideoSubmit} className="flex flex-col sm:flex-row gap-4">
+          <input
+            type="text"
+            placeholder="https://www.youtube.com/watch?v=..."
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            disabled={processingVideo || uploading}
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+          />
+          <button
+            type="submit"
+            disabled={processingVideo || uploading || !videoUrl.trim()}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {processingVideo ? 'Processing...' : 'Generate Notes'}
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 };
