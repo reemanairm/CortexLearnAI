@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Trash2, Eye, FileText, FileUp, Sparkles, Clock } from 'lucide-react';
+import { Upload, Trash2, Eye, FileText, FileUp, Sparkles, Clock, Zap, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';

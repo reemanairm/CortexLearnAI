@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, BarChart3, TrendingUp, Flame, BrainCircuit, Target, CheckCircle2, Award } from 'lucide-react';
+import { BookOpen, BarChart3, TrendingUp, Flame, BrainCircuit, Target, CheckCircle2, Award, Upload, Sparkles as SparklesIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
@@ -7,7 +7,7 @@ import HelpWidget from '../../components/common/HelpWidget';
 import progressService from '../../services/progressService';
 import documentService from '../../services/documentservice';
 import LearningProgressPanel from './LearningProgressPanel';
-import { Upload, Sparkles as SparklesIcon } from 'lucide-react';
+
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState(null);
