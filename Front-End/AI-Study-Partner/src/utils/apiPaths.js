@@ -1,4 +1,4 @@
-export const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.PROD ? "" : "http://localhost:8000");
+export const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.MODE === 'production' ? "" : "http://localhost:8000");
 
 export const API_PATHS = {
   AUTH: {

@@ -30,8 +30,9 @@ export const uploadDocument = async (req, res, next) => {
     }
 
     // Construct the URL for the uploaded file
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 8000}`;
-    const fileUrl = `${baseUrl}/uploads/documents/${req.file.filename}`;
+    // Construct the URL for the uploaded file
+    const baseUrl = process.env.BASE_URL || "";
+    const fileUrl = baseUrl ? `${baseUrl}/uploads/documents/${req.file.filename}` : `/uploads/documents/${req.file.filename}`;
 
     // Create document record
     const document = await Document.create({
@@ -137,8 +138,8 @@ export const processVideoLink = async (req, res, next) => {
     const filename = `video_${crypto.randomBytes(6).toString('hex')}.pdf`;
     const outputPath = await generatePDF(generatedTitle, structuredNotes, filename);
 
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 8000}`;
-    const fileUrl = `${baseUrl}/uploads/documents/${filename}`;
+    const baseUrl = process.env.BASE_URL || "";
+    const fileUrl = baseUrl ? `${baseUrl}/uploads/documents/${filename}` : `/uploads/documents/${filename}`;
 
     const document = await Document.create({
       userId: req.user._id,
