@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Trash2, Eye, FileText, FileUp, Sparkles, Clock, Zap, BookOpen } from 'lucide-react';
+import { Upload, Trash2, Eye, FileText, FileUp, Sparkles, Clock, Zap as ZapIcon, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
@@ -190,7 +190,7 @@ const DocumentListPage = () => {
         {/* Card 2: Video to Notes */}
         <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[300px] group hover:border-violet-500/40 hover:bg-slate-900/60 transition-all duration-300">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Zap size={120} className="text-violet-400" />
+            <ZapIcon size={120} className="text-violet-400" />
           </div>
 
           <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4 text-violet-400 group-hover:bg-violet-500 group-hover:text-white transition-all shadow-lg">

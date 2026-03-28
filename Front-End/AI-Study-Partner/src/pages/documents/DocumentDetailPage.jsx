@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Send,
-  Zap,
+  Zap as ZapIcon,
   BookOpen,
   MessageCircle,
   ArrowLeft,
@@ -339,7 +339,7 @@ const DocumentDetailPage = () => {
                 className="w-full group flex-1 bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-purple-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(168,85,247,0.1)] text-left"
               >
                 <div className="p-3 bg-slate-800 group-hover:bg-purple-500/20 rounded-xl transition-colors">
-                  <Zap className="text-purple-400" size={24} />
+                  <ZapIcon className="text-purple-400" size={24} />
                 </div>
                 <div>
                   <h4 className="font-bold text-white group-hover:text-purple-300 transition-colors">Generate Flashcards</h4>

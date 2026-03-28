@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, User, BookOpen, Zap, BarChart3, BrainCircuit, Shield, HelpCircle } from 'lucide-react';
+import { Menu, X, LogOut, User, BookOpen, Zap as ZapIcon, BarChart3, BrainCircuit, Shield, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -40,7 +40,7 @@ const AppLayout = ({ children }) => {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/documents', label: 'Documents', icon: BookOpen },
-    { path: '/flashcards', label: 'Flashcards', icon: Zap },
+    { path: '/flashcards', label: 'Flashcards', icon: ZapIcon },
     { path: '/quizzes', label: 'Quizzes', icon: BrainCircuit },
     { path: '/help-history', label: 'Help History', icon: HelpCircle },
     // Conditionally render admin link

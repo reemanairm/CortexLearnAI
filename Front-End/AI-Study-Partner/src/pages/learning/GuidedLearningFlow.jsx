@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
   BookOpen, 
-  Zap, 
+  Zap as ZapIcon,
   BrainCircuit, 
   CheckCircle2, 
   ChevronRight, 
@@ -203,7 +203,7 @@ const GuidedLearningFlow = () => {
         <div className="h-[calc(100vh-8rem)]">
              <div className="flex items-center justify-between px-6 py-4 bg-slate-900/40 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                    <Zap className="text-purple-400" />
+                    <ZapIcon className="text-purple-400" />
                     <h2 className="font-bold text-white">Step 2: Flashcards - {chapter.title}</h2>
                 </div>
                 <button 
