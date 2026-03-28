@@ -33,6 +33,12 @@ const startServer = async () => {
     await connectDB();
     console.log('MongoDB connection established');
 
+    app.use(express.static(path.join(__dirname,"../Front-End/dist")));
+
+    app.get("*",(req, res) => {
+      res.sendFile(path.join(__dirname,"../Front-End/dist/index.html"));
+    });
+
     const PORT = process.env.PORT || 8000;
     app.listen(PORT, () => {
       console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
@@ -101,4 +107,5 @@ process.on('unhandledRejection', (err) => {
   console.error(`Unhandled rejection: ${err.message}`);
   process.exit(1);
 });
+
 
