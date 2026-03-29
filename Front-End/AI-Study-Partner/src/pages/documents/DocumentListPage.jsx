@@ -11,6 +11,8 @@ const DocumentListPage = () => {
   const [uploading, setUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
+  const [pastedTranscript, setPastedTranscript] = useState('');
+  const [showManualPaste, setShowManualPaste] = useState(false);
   const [processingVideo, setProcessingVideo] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -66,13 +68,18 @@ const DocumentListPage = () => {
 
   const handleVideoSubmit = async (e) => {
     e.preventDefault();
-    if (!videoUrl.trim()) return;
+    if (!videoUrl.trim() && !pastedTranscript.trim()) return;
 
     try {
       setProcessingVideo(true);
-      const res = await documentService.processVideo({ videoUrl: videoUrl.trim() });
+      const res = await documentService.processVideo({ 
+        videoUrl: videoUrl.trim(),
+        pastedTranscript: showManualPaste ? pastedTranscript.trim() : null
+      });
       toast.success('Video processed successfully! 🎉');
       setVideoUrl('');
+      setPastedTranscript('');
+      setShowManualPaste(false);
       if (res.data?._id) {
         navigate(`/documents/${res.data._id}`);
       } else {
@@ -80,7 +87,14 @@ const DocumentListPage = () => {
       }
     } catch (error) {
       console.error('Error processing video:', error);
-      toast.error(error.response?.data?.error || error.message || 'Failed to process video');
+      const isBlocked = error.response?.data?.isBlocked || error.response?.status === 429;
+      
+      if (isBlocked) {
+        setShowManualPaste(true);
+        toast.error('YouTube blocked the automated fetch. Please paste the transcript below!', { duration: 6000 });
+      } else {
+        toast.error(error.response?.data?.error || error.message || 'Failed to process video');
+      }
     } finally {
       setProcessingVideo(false);
     }
@@ -208,20 +222,42 @@ const DocumentListPage = () => {
               type="text"
               placeholder="https://youtube.com/..."
               value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
+              onChange={(e) => {
+                setVideoUrl(e.target.value);
+                if (showManualPaste) setShowManualPaste(false);
+              }}
               disabled={processingVideo || uploading}
               className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all"
             />
+            
+            {showManualPaste && (
+              <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider pl-1">
+                  Manual Fallback: Paste Transcript Below
+                </p>
+                <textarea
+                  placeholder="Click 'Show Transcript' on YouTube & paste the text here..."
+                  value={pastedTranscript}
+                  onChange={(e) => setPastedTranscript(e.target.value)}
+                  disabled={processingVideo}
+                  rows={4}
+                  className="w-full bg-slate-800/80 border border-orange-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all resize-none"
+                />
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={processingVideo || uploading || !videoUrl.trim()}
-              className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+              disabled={processingVideo || uploading || (!videoUrl.trim() && !pastedTranscript.trim())}
+              className={`w-full py-2.5 ${showManualPaste ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20' : 'bg-violet-600 hover:bg-violet-500 shadow-violet-500/20'} text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 text-sm flex items-center justify-center gap-2`}
             >
               {processingVideo ? (
                 <>
                   <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   Generating...
                 </>
+              ) : showManualPaste ? (
+                'Process Pasted Transcript'
               ) : (
                 'Generate from Video'
               )}

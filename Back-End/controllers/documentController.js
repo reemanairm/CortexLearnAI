@@ -307,28 +307,57 @@ const processPDF = async (documentId, filePath) => {
 // @access  Private
 export const processVideoLink = async (req, res, next) => {
   try {
-    const { videoUrl } = req.body;
-    if (!videoUrl) {
-      return res.status(400).json({ success: false, error: 'Please provide a videoUrl', statusCode: 400 });
+    const { videoUrl, pastedTranscript } = req.body;
+    if (!videoUrl && !pastedTranscript) {
+      return res.status(400).json({ success: false, error: 'Please provide a videoUrl or transcript', statusCode: 400 });
     }
 
-    let transcriptArray;
-    try {
-      transcriptArray = await fetchTranscript(videoUrl);
-    } catch (transcriptError) {
-      console.error('YouTube transcript error:', transcriptError);
-      let errorMessage = 'Failed to fetch video transcript.';
-      if (transcriptError.message?.includes('too many requests') || transcriptError.message?.includes('captcha')) {
-        errorMessage = 'YouTube has blocked our request due to high traffic. Please try again later or provide a PDF/Text version of the notes.';
+    let transcriptStr = '';
+
+    if (pastedTranscript) {
+      console.log('Using manually pasted transcript');
+      transcriptStr = pastedTranscript;
+    } else {
+      let transcriptArray;
+      const languages = ['en', 'hi'];
+      let success = false;
+      let lastError = null;
+
+      for (const lang of languages) {
+        try {
+          console.log(`Attempting to fetch transcript in language: ${lang}`);
+          transcriptArray = await fetchTranscript(videoUrl, { lang });
+          if (transcriptArray && transcriptArray.length > 0) {
+            success = true;
+            transcriptStr = transcriptArray.map(t => t.text).join(' ');
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`Failed to fetch ${lang} transcript:`, err.message);
+        }
       }
-      return res.status(429).json({ 
-        success: false, 
-        error: errorMessage, 
-        statusCode: 429 
-      });
-    }
 
-    const transcriptStr = transcriptArray.map(t => t.text).join(' ');
+      if (!success) {
+        console.error('YouTube transcript error:', lastError);
+        let errorMessage = 'Failed to fetch video transcript automatically.';
+        let isBlocked = false;
+
+        if (lastError?.message?.includes('too many requests') || lastError?.message?.includes('429')) {
+          errorMessage = 'YouTube has blocked our server request due to high traffic.';
+          isBlocked = true;
+        } else if (lastError?.message?.includes('Could not find transcript')) {
+          errorMessage = 'No English or Hindi transcript found for this video.';
+        }
+
+        return res.status(isBlocked ? 429 : 400).json({ 
+          success: false, 
+          error: errorMessage, 
+          isBlocked,
+          statusCode: isBlocked ? 429 : 400 
+        });
+      }
+    }
 
     const structuredNotes = await generateStructuredNotes(transcriptStr);
 
