@@ -47,6 +47,7 @@ const DocumentDetailPage = () => {
   const [quizQty, setQuizQty] = useState(5);
   const [quizDifficultyPct, setQuizDifficultyPct] = useState(50); // 0-100 range
   const [chapterProgress, setChapterProgress] = useState([]);
+  const [showMobilePdf, setShowMobilePdf] = useState(false);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -353,25 +354,34 @@ const DocumentDetailPage = () => {
             </div>
           </div>
 
-          <div className="w-full mt-4 h-[300px] lg:h-[400px] bg-slate-800/30 rounded-xl overflow-hidden border border-slate-700/50">
-            <object
-              data={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
-              type="application/pdf"
-              className="w-full h-full"
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setShowMobilePdf(!showMobilePdf)}
+              className="lg:hidden w-full py-2.5 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
             >
-              <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                <FileText size={32} className="text-slate-500 mb-2" />
-                <p className="text-sm text-slate-400">PDF preview is not supported in your browser.</p>
-                <a 
-                  href={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="mt-3 text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1"
-                >
-                  <Eye size={14} /> Open Original PDF instead
-                </a>
-              </div>
-            </object>
+              {showMobilePdf ? <><X size={16} /> Hide Preview</> : <><Eye size={16} /> View Original PDF</>}
+            </button>
+
+            <div className={`w-full h-[300px] lg:h-[400px] bg-slate-800/30 rounded-xl overflow-hidden border border-slate-700/50 ${!showMobilePdf ? 'hidden lg:block' : 'block'}`}>
+              <object
+                data={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
+                type="application/pdf"
+                className="w-full h-full"
+              >
+                <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                  <FileText size={32} className="text-slate-500 mb-2" />
+                  <p className="text-sm text-slate-400">PDF preview is not supported in your browser.</p>
+                  <a 
+                    href={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mt-3 text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1"
+                  >
+                    <Eye size={14} /> Open Original PDF instead
+                  </a>
+                </div>
+              </object>
+            </div>
           </div>
 
           {document.status === 'failed' && (
@@ -388,7 +398,7 @@ const DocumentDetailPage = () => {
         {/* AI Actions */}
         <div>
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-2 mb-4">AI Generation</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 md:gap-4">
 
             {/* Summary button */}
             <button
@@ -575,8 +585,8 @@ const DocumentDetailPage = () => {
 
         {/* If showing summary, overlay it on top */}
         {showSummary && summary && (
-          <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md p-6 sm:p-10 overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
-            <div className="max-w-3xl mx-auto">
+          <div className="fixed inset-0 lg:absolute lg:inset-0 z-[60] lg:z-20 bg-slate-950/98 lg:bg-slate-900/95 backdrop-blur-xl p-6 sm:p-10 overflow-y-auto animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center justify-start pt-20 lg:pt-10">
+            <div className="w-full max-w-3xl">
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500/20 rounded-lg">
