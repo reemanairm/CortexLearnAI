@@ -1,11 +1,9 @@
 import axiosInstance from '../utils/axiosInstance';
-import { BASE_URL } from '../utils/apiPaths';
-
-const API_URL = `${BASE_URL}/api/help`;
+import { API_PATHS } from '../utils/apiPaths';
 
 const submitHelpRequest = async (requestData) => {
     try {
-        const response = await axiosInstance.post(API_URL, requestData);
+        const response = await axiosInstance.post(API_PATHS.HELP.SUBMIT, requestData);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to submit help request' };
@@ -14,7 +12,7 @@ const submitHelpRequest = async (requestData) => {
 
 const getMyHelpRequests = async () => {
     try {
-        const response = await axiosInstance.get(`${API_URL}/my-requests`);
+        const response = await axiosInstance.get(API_PATHS.HELP.MY_REQUESTS);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to fetch your help requests' };

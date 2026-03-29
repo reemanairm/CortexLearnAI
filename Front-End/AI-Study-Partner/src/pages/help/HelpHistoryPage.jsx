@@ -21,7 +21,7 @@ const HelpHistoryPage = () => {
         try {
             setLoading(true);
             const response = await helpService.getMyHelpRequests();
-            setRequests(response.data);
+            setRequests(response.data || []);
         } catch (error) {
             console.error('Error fetching help history:', error);
             toast.error('Failed to load help history');

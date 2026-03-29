@@ -58,5 +58,16 @@ export const API_PATHS = {
 
   HELP: {
     SUBMIT: "/help",
+    MY_REQUESTS: "/help/my-requests",
+  },
+
+  ADMIN: {
+    STATS: "/admin/stats",
+    USERS: "/admin/users",
+    DOCUMENTS: "/admin/documents",
+    HELP_REQUESTS: "/admin/help-requests",
+    RESOLVE_HELP: (id) => `/admin/help-requests/${id}/resolve`,
+    DELETE_USER: (id) => `/admin/user/${id}`,
+    DELETE_DOC: (id) => `/admin/document/${id}`,
   },
 };

@@ -44,10 +44,10 @@ const AdminDashboard = () => {
                 adminService.getHelpRequests()
             ]);
 
-            setStats(statsRes.data);
-            setUsers(usersRes.data);
-            setDocuments(docsRes.data);
-            setHelpRequests(helpRes.data);
+            setStats(statsRes.data || {});
+            setUsers(usersRes.data || []);
+            setDocuments(docsRes.data || []);
+            setHelpRequests(helpRes.data || []);
         } catch (error) {
             console.error('Error fetching admin data:', error);
             toast.error('Failed to load admin dashboard data');
