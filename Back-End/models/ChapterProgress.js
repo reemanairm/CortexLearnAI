@@ -28,6 +28,10 @@ const chapterProgressSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalFlashcards: {
+    type: Number,
+    default: 0
+  },
   quizScore: {
     type: Number,
     default: null

@@ -49,7 +49,7 @@ export const generateFlashcards = async (req, res, next) => {
 
     // accept either `numCards` from frontend or legacy `count`
     const { documentId, numCards, count } = req.body;
-    const limit = parseInt(numCards ?? count ?? 10, 10);
+    let limit = parseInt(numCards ?? count ?? 10, 10);
 
     if (!documentId) {
       return res.status(400).json({
@@ -135,11 +135,11 @@ export const generateFlashcards = async (req, res, next) => {
       });
     }
 
-    if (cards.length < limit) {
-      // if we got fewer cards than requested, notify the frontend so user can retry
+    if (cards.length < limit && !isAutomatic) {
+      // if we got fewer cards than requested in manual mode, notify the frontend so user can retry
       return res.status(500).json({
         success: false,
-        error: `AI only produced ${cards.length} flashcards instead of the requested ${limit}. Please try again or reduce the count.`,
+        error: `Only ${cards.length} flashcards were generated. Please try again or with a smaller limit.`,
         statusCode: 500
       });
     }

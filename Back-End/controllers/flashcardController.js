@@ -90,7 +90,7 @@ export const reviewFlashcard = async (req, res, next) => {
     await flashcardSet.save();
 
     // Trigger chapter progress update if chapterId exists
-    if (flashcardSet.chapterId && isLearnt) {
+    if (flashcardSet.chapterId) {
       try {
         const ChapterProgress = (await import('../models/ChapterProgress.js')).default;
         const totalCards = flashcardSet.cards.length;
@@ -104,6 +104,7 @@ export const reviewFlashcard = async (req, res, next) => {
 
         if (progress) {
           progress.flashcardsReviewed = learntCards;
+          progress.totalFlashcards = totalCards;
           // If all cards are learnt AND quiz is passed (or not yet taken), mark as in_progress or completed
           if (learntCards >= totalCards * 0.9) { 
             if (progress.status === 'not_started') progress.status = 'in_progress';

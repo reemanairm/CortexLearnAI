@@ -545,13 +545,17 @@ const DocumentDetailPage = () => {
                            <>Start Learning</>
                         )}
                       </button>
-                      <button
-                        onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}?mode=revision`)}
-                        className={`flex-1 ${prog?.status === 'needs_revision' ? 'bg-orange-500/20 border-orange-500/40 animate-pulse' : 'bg-orange-500/10 border-orange-500/20'} hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-lg transition-colors border flex items-center justify-center gap-1.5`}
-                        title={prog?.status === 'needs_revision' ? 'Review weak areas detected from quiz' : 'Targeted Revision'}
-                      >
-                        Revision
-                      </button>
+                      
+                      {/* Revision button only if 20% progress threshold is met AND quiz attended */}
+                      {((prog?.totalFlashcards > 0 && (prog?.flashcardsReviewed / prog?.totalFlashcards) >= 0.2) || prog?.quizScore !== null) && (
+                        <button
+                          onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}?mode=revision`)}
+                          className={`flex-1 ${prog?.status === 'needs_revision' ? 'bg-orange-500/20 border-orange-500/40 animate-pulse' : 'bg-orange-500/10 border-orange-500/20'} hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-lg transition-colors border flex items-center justify-center gap-1.5`}
+                          title={prog?.status === 'needs_revision' ? 'Review weak areas detected from quiz' : 'Targeted Revision'}
+                        >
+                          Revision
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

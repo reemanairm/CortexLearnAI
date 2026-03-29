@@ -217,6 +217,9 @@ export const updateChapterProgress = async (req, res, next) => {
       const flashcardSet = await Flashcard.findOne({ documentId, chapterId, userId: req.user._id });
       const learntFlashcards = flashcardSet ? flashcardSet.cards.filter(c => c.isLearnt).length : 0;
       const totalFlashcards = flashcardSet ? flashcardSet.cards.length : 1; // avoid div by zero
+      
+      progress.totalFlashcards = totalFlashcards;
+      progress.flashcardsReviewed = learntFlashcards;
 
       if (quizScore >= 70 && (learntFlashcards / totalFlashcards >= 0.9)) {
         progress.status = 'completed';
