@@ -68,7 +68,7 @@ const AppLayout = ({ children }) => {
         <div className="p-6 border-b border-slate-800 flex items-center gap-3 shrink-0 h-20">
           <BrainCircuit size={28} className="text-indigo-400 shrink-0" />
           <h1 className={`text-xl font-bold tracking-tight text-white whitespace-nowrap transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden md:block md:w-0'}`}>
-            AI Study
+            CortexLearn AI
           </h1>
           {/* Mobile close button inside sidebar */}
           {isMobile && sidebarOpen && (
