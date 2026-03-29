@@ -12,13 +12,17 @@ const getDocuments = async () => {
 
 const uploadDocument = async (formData) => {
     try {
+        // Don't set Content-Type header - let axios/browser set it automatically with boundary
         const response = await axiosInstance.post(API_PATHS.DOCUMENTS.UPLOAD, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            // Ensure timeout is sufficient for large files
+            timeout: 120000,
         });
         return response.data;
     } catch (error) {
+        console.error('Upload error:', error);
         throw error.response?.data || { message: 'Failed to upload document' };
     }
 };
