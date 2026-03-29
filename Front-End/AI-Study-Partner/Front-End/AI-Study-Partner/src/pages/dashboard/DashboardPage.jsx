@@ -87,7 +87,7 @@ const DashboardPage = () => {
             Welcome Back! <span className="inline-block hover:animate-spin-slow duration-700">👋</span>
           </h1>
           <p className="text-indigo-100/90 text-lg max-w-2xl font-medium">
-            YourAI Study Partner  has analyzed your progress. Let's conquer your next learning milestone today. 🚀
+            Your AI Study Partner  has analyzed your progress. Let's conquer your next learning milestone today. 🚀
           </p>
         </div>
       </div>
@@ -195,48 +195,6 @@ const DashboardPage = () => {
               Based on recent quiz performance
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* Video to Notes Quick Access */}
-      <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-3xl p-8 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <BookOpen size={120} className="text-indigo-400 rotate-12" />
-        </div>
-        
-        <div className="relative z-10">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-            <SparklesIcon className="text-indigo-400" size={24} /> 
-            Instant Video to Notes
-          </h2>
-          <p className="text-slate-400 mb-6 max-w-xl">
-            Want to study a YouTube video? Paste the link below to generate structured PDF notes, flashcards, and a quiz automatically.
-          </p>
-          
-          <form onSubmit={handleVideoSubmit} className="flex flex-col sm:flex-row gap-4 max-w-3xl">
-            <input
-              type="text"
-              placeholder="Paste YouTube URL here..."
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              disabled={processingVideo}
-              className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium"
-            />
-            <button
-              type="submit"
-              disabled={processingVideo || !videoUrl.trim()}
-              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
-            >
-              {processingVideo ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Processing...
-                </>
-              ) : (
-                'Generate Study Materials'
-              )}
-            </button>
-          </form>
         </div>
       </div>
 
