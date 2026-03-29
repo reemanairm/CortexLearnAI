@@ -49,6 +49,24 @@ const DocumentDetailPage = () => {
   useEffect(() => {
     fetchDocument();
     fetchChatHistory();
+    
+    // Poll for document processing status updates
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await documentService.getDocumentById(id);
+        const doc = res.data;
+        setDocument(doc);
+        
+        // Stop polling if document is ready or failed
+        if (doc.status === 'ready' || doc.status === 'failed') {
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(pollInterval);
   }, [id]);
 
   useEffect(() => {
@@ -320,17 +338,31 @@ const DocumentDetailPage = () => {
             {/* Summary button */}
             <button
               onClick={handleGenerateSummary}
-              disabled={summaryLoading}
-              className="w-full group relative overflow-hidden bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] text-left"
+              disabled={summaryLoading || document.status !== 'ready'}
+              className={`w-full group relative overflow-hidden bg-slate-900/60 backdrop-blur-md border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 text-left ${
+                document.status !== 'ready' 
+                  ? 'border-slate-800 opacity-50 cursor-not-allowed' 
+                  : summaryLoading 
+                    ? 'border-emerald-500/30 hover:border-emerald-500/50' 
+                    : 'border-slate-800 hover:border-emerald-500/30'
+              }`}
             >
-              <div className={`p-3 rounded-xl transition-colors ${summaryLoading ? 'bg-emerald-500/20' : 'bg-slate-800 group-hover:bg-emerald-500/20'}`}>
+              <div className={`p-3 rounded-xl transition-colors ${
+                summaryLoading 
+                  ? 'bg-emerald-500/20' 
+                  : document.status !== 'ready' 
+                    ? 'bg-slate-800' 
+                    : 'bg-slate-800 group-hover:bg-emerald-500/20'
+              }`}>
                 {summaryLoading ? <Sparkles className="text-emerald-400 animate-spin" size={24} /> : <BookOpen className="text-emerald-400" size={24} />}
               </div>
               <div>
                 <h4 className="font-bold text-white group-hover:text-emerald-300 transition-colors">
-                  {summaryLoading ? 'Generating...' : 'Smart Summary'}
+                  {summaryLoading ? 'Generating...' : document.status !== 'ready' ? 'Processing...' : 'Smart Summary'}
                 </h4>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">Extract key concepts instantly</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  {document.status !== 'ready' ? 'Wait for processing to complete' : 'Extract key concepts instantly'}
+                </p>
               </div>
             </button>
 
@@ -342,32 +374,48 @@ const DocumentDetailPage = () => {
                 max="50"
                 value={flashcardQty}
                 onChange={(e) => setFlashcardQty(Number(e.target.value))}
-                className="w-20 p-2 rounded-md bg-slate-800 text-white text-sm"
+                disabled={document.status !== 'ready'}
+                className={`w-20 p-2 rounded-md bg-slate-800 text-white text-sm ${
+                  document.status !== 'ready' ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 title="Number of flashcards"
               />
               <button
                 onClick={handleGenerateFlashcards}
-                className="w-full group flex-1 bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-purple-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(168,85,247,0.1)] text-left"
+                disabled={isGenerating || document.status !== 'ready'}
+                className={`w-full group flex-1 bg-slate-900/60 backdrop-blur-md border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 text-left ${
+                  document.status !== 'ready' 
+                    ? 'border-slate-800 opacity-50 cursor-not-allowed' 
+                    : 'border-slate-800 hover:border-purple-500/30 hover:-translate-y-1'
+                }`}
               >
                 <div className="p-3 bg-slate-800 group-hover:bg-purple-500/20 rounded-xl transition-colors">
                   <ZapIcon className="text-purple-400" size={24} />
                 </div>
                 <div>
                   <h4 className="font-bold text-white group-hover:text-purple-300 transition-colors">Generate Flashcards</h4>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">Create {flashcardQty} bite-sized cards</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    {document.status !== 'ready' ? 'Wait for processing' : `Create ${flashcardQty} bite-sized cards`}
+                  </p>
                 </div>
               </button>
             </div>
 
             {/* Quiz with quantity & difficulty input */}
-            <div className="flex flex-col gap-3 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.1)] group">
-              <div className="flex items-center gap-4 cursor-pointer" onClick={handleGenerateQuiz}>
+            <div className={`flex flex-col gap-3 bg-slate-900/60 backdrop-blur-md border rounded-2xl p-4 transition-all duration-300 group ${
+              document.status !== 'ready' 
+                ? 'border-slate-800 opacity-50 cursor-not-allowed' 
+                : 'border-slate-800 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.1)]'
+            }`}>
+              <div className="flex items-center gap-4 cursor-pointer" onClick={() => document.status === 'ready' && handleGenerateQuiz()}>
                 <div className="p-3 bg-slate-800 group-hover:bg-blue-500/20 rounded-xl transition-colors">
                   <BrainCircuit className="text-blue-400" size={24} />
                 </div>
                 <div>
                   <h4 className="font-bold text-white group-hover:text-blue-300 transition-colors">Generate Quiz</h4>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">Test knowledge with {quizQty} questions</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    {document.status !== 'ready' ? 'Wait for processing' : `Test knowledge with ${quizQty} questions`}
+                  </p>
                 </div>
               </div>
 
