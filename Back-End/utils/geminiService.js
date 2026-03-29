@@ -15,13 +15,17 @@ const ai = new GoogleGenerativeAI(apiKey);
    Generate Flashcards (Structured JSON)
 --------------------------------------------------- */
 export const generateFlashcards = async (text, count = 10, fileData = null) => {
-  const prompt = `You are an expert flashcard creator. Generate exactly ${count} high-quality educational flashcards.
+  const prompt = `You are an expert educational content creator. Your goal is to generate exactly ${count} high-quality flashcards that COVERS EVERY SINGLE DETAIL in the provided text.
+  
+  CRITICAL INSTRUCTIONS:
+  1. DO NOT SKIP ANY TOPICS. Every paragraph and key fact in the text must be reflected in at least one flashcard.
+  2. Ensure the ${count} flashcards are distributed evenly across the entire provided content to ensure 100% coverage.
+  3. Create comprehensive flashcards that allow a student to learn the entire material from scratch.
 
   IMPORTANT: Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
 
-  Read the provided document and create comprehensive flashcards based on the key concepts.
-  If text is provided:
-  ${text ? text.substring(0, 20000) : "No text provided, rely on the document file."}`;
+  Read the provided document and create comprehensive flashcards based on the key concepts:
+  ${text ? "Text context:\n" + text.substring(0, 20000) : "No text provided, rely on the document file."}`;
 
   const schema = {
     type: SchemaType.ARRAY,
@@ -70,13 +74,17 @@ export const generateFlashcards = async (text, count = 10, fileData = null) => {
 --------------------------------------------------- */
 export const generateQuiz = async (text, numQuestions = 5, difficultyPref = "medium", fileData = null) => {
   const prompt = `
-Generate exactly ${numQuestions} multiple choice questions from the provided document.
-The overall difficulty tone of the questions should be focused on: ${difficultyPref}.
+Generate exactly ${numQuestions} multiple choice questions that COVERS EVERY SINGLE DETAIL, CONCEPT, AND FACT in the provided text.
+
+CRITICAL INSTRUCTIONS:
+1. FULL COVERAGE: Every part of the document must be tested. Ensure the questions are spread across the entire content.
+2. The overall difficulty tone of the questions should be focused on: ${difficultyPref}.
+3. Each question must be unique and technically accurate based on the context.
 
 IMPORTANT: Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
 
 If text is provided:
-${text ? text.substring(0, 15000) : "No text provided, rely on the document file."}
+${text ? "Text context:\n" + text.substring(0, 15000) : "No text provided, rely on the document file."}
 `;
 
   const schema = {

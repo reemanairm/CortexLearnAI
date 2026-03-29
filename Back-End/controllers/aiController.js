@@ -112,7 +112,7 @@ export const generateFlashcards = async (req, res, next) => {
         
         // Dynamically scale flashcard count if automatic mode is engaged
         if (isAutomatic) {
-           limit = Math.max(5, chapterChunks.length * 3); // ~3 dense flashcards per chunk to cover fully
+           limit = Math.max(10, chapterChunks.length * 4); // Increased to 4 per chunk for exhaustive coverage
            console.log(`Automatic mode: Dynamic flashcard limit set to ${limit} for full coverage.`);
         }
       }
@@ -242,7 +242,7 @@ export const generateQuiz = async (req, res, next) => {
         console.log('Chapter text length:', textToProcess.length);
         
         if (isAutomatic) {
-           numQuestionsParsed = Math.max(5, chapterChunks.length * 2); // ~2 tight quiz questions per chunk
+           numQuestionsParsed = Math.max(15, chapterChunks.length * 6); // Increased to 6 per chunk to ensure quiz > flashcards and full depth
            console.log(`Automatic mode: Dynamic quiz limit set to ${numQuestionsParsed} for full coverage.`);
         }
       }

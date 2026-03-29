@@ -165,12 +165,30 @@ const LearningProgressPanel = () => {
                   </div>
                 )}
 
-                <button
-                  onClick={() => navigate(`/documents/${selectedDocId}/learning/${chapter.chapterId}`)}
-                  className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all border border-slate-700 hover:border-indigo-500 shadow-sm"
-                >
-                  Continue Learning <ChevronRight size={14} />
-                </button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => navigate(`/documents/${selectedDocId}/learning/${chapter.chapterId}`)}
+                    className={`flex-2 ${chapter.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'} hover:bg-opacity-20 text-xs font-bold py-2.5 px-3 rounded-xl transition-colors border flex items-center justify-center gap-1.5`}
+                  >
+                    {chapter.status === 'completed' ? (
+                       <>Re-learn</>
+                    ) : (chapter.status === 'in_progress' || chapter.status === 'needs_revision') ? (
+                       <>Continue Learning</>
+                    ) : (
+                       <>Start Learning</>
+                    )}
+                  </button>
+
+                  {((chapter.totalFlashcards > 0 && (chapter.flashcardsReviewed / chapter.totalFlashcards) >= 0.2) || chapter.quizScore !== null) && (
+                    <button
+                      onClick={() => navigate(`/documents/${selectedDocId}/learning/${chapter.chapterId}?mode=revision`)}
+                      className={`flex-1 ${chapter.status === 'needs_revision' ? 'bg-orange-500/20 border-orange-500/40 animate-pulse' : 'bg-orange-500/10 border-orange-500/20'} hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-xl transition-colors border flex items-center justify-center gap-1.5`}
+                      title={chapter.status === 'needs_revision' ? 'Review weak areas detected from quiz' : 'Targeted Revision'}
+                    >
+                      Revision
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
