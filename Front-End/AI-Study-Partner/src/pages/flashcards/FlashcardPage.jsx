@@ -8,7 +8,7 @@ import Loader from '../../components/common/Loader';
 import HelpWidget from '../../components/common/HelpWidget';
 import AIChatModal from '../../components/common/AIChatModal';
 
-const FlashcardPage = ({ chapterId: propChapterId }) => {
+const FlashcardPage = ({ chapterId: propChapterId, mode }) => {
   const { id } = useParams();
   const chapterId = propChapterId || useParams().chapterId; // Support both prop and URL param
   const navigate = useNavigate();
@@ -21,6 +21,9 @@ const FlashcardPage = ({ chapterId: propChapterId }) => {
   const [showAiChat, setShowAiChat] = useState(false);
   const [currentExplanation, setCurrentExplanation] = useState('');
   const [isExplaining, setIsExplaining] = useState(false);
+
+  // Timer & Revision states
+  const [timeSpentOnCard, setTimeSpentOnCard] = useState(0);
 
   useEffect(() => {
     fetchCards();
@@ -37,7 +40,13 @@ const FlashcardPage = ({ chapterId: propChapterId }) => {
         sets = sets.filter(s => s.chapterId === chapterId);
       }
       
-      setCards(sets.length > 0 ? sets[0].cards : []);
+      let finalCards = sets.length > 0 ? sets[0].cards : [];
+      
+      if (mode === 'revision') {
+         finalCards = finalCards.filter(c => !c.isLearnt || c.savedForRevision);
+      }
+      
+      setCards(finalCards);
       setCurrentIndex(0);
       setIsFlipped(false);
     } catch (error) {
@@ -52,19 +61,51 @@ const FlashcardPage = ({ chapterId: propChapterId }) => {
     setIsFlipped(prev => !prev);
   }, []);
 
-  const nextCard = useCallback(() => {
-    setIsFlipped(false);
-    setTimeout(() => {
-      setCurrentIndex((idx) => (idx + 1) % cards.length);
-    }, 150);
-  }, [cards.length]);
+  // Track time spent on card
+  useEffect(() => {
+    if (cards.length === 0) return;
+    const timer = setInterval(() => {
+      setTimeSpentOnCard(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentIndex, cards.length]);
 
-  const prevCard = useCallback(() => {
+  const recordTimeAndNext = useCallback(async (direction) => {
+    const currentCard = cards[currentIndex];
+    if (currentCard && timeSpentOnCard > 0) {
+      // Fire background update for time spent and learned status
+      const isLearnt = (timeSpentOnCard >= 5) || currentCard.isLearnt;
+      flashcardService.reviewFlashcard(currentCard._id, {
+        cardIndex: currentIndex,
+        timeSpent: timeSpentOnCard,
+        isLearnt
+      }).catch(err => console.error('Failed to update flashcard time:', err));
+      
+      // Update local state without waiting
+      setCards(prev => {
+        const updated = [...prev];
+        updated[currentIndex] = {
+           ...updated[currentIndex],
+           timeSpent: (updated[currentIndex].timeSpent || 0) + timeSpentOnCard,
+           isLearnt
+        };
+        return updated;
+      });
+    }
+
     setIsFlipped(false);
+    setTimeSpentOnCard(0);
     setTimeout(() => {
-      setCurrentIndex((idx) => (idx - 1 + cards.length) % cards.length);
+      if (direction === 'next') {
+        setCurrentIndex((idx) => (idx + 1) % cards.length);
+      } else {
+        setCurrentIndex((idx) => (idx - 1 + cards.length) % cards.length);
+      }
     }, 150);
-  }, [cards.length]);
+  }, [cards, currentIndex, timeSpentOnCard]);
+
+  const nextCard = useCallback(() => recordTimeAndNext('next'), [recordTimeAndNext]);
+  const prevCard = useCallback(() => recordTimeAndNext('prev'), [recordTimeAndNext]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -87,14 +128,49 @@ const FlashcardPage = ({ chapterId: propChapterId }) => {
     e.stopPropagation();
     if (!currentCard) return;
     try {
-      await flashcardService.reviewFlashcard(currentCard._id, currentIndex);
-      toast.success('Marked as reviewed');
+      if (timeSpentOnCard < 5 && !currentCard.isLearnt) {
+         toast('Spend at least 5 seconds reading the card to mark it as learned!', { icon: '⏳' });
+         return;
+      }
+      await flashcardService.reviewFlashcard(currentCard._id, { 
+         cardIndex: currentIndex, 
+         timeSpent: timeSpentOnCard,
+         isLearnt: true 
+      });
+      toast.success('Marked as learned! Great job.');
       const updated = [...cards];
       updated[currentIndex].reviewCount = (updated[currentIndex].reviewCount || 0) + 1;
+      updated[currentIndex].isLearnt = true;
+      updated[currentIndex].timeSpent = (updated[currentIndex].timeSpent || 0) + timeSpentOnCard;
       setCards(updated);
+      setTimeSpentOnCard(0);
+      nextCard();
     } catch (error) {
       console.error('Review error', error);
-      toast.error('Failed to review flag');
+      toast.error('Failed to mark learned status');
+    }
+  };
+
+  const handleToggleSavedForRevision = async (e) => {
+    e.stopPropagation();
+    if (!currentCard) return;
+    try {
+      const newState = !currentCard.savedForRevision;
+      await flashcardService.reviewFlashcard(currentCard._id, { 
+        cardIndex: currentIndex,
+        savedForRevision: newState 
+      });
+      const updated = [...cards];
+      updated[currentIndex].savedForRevision = newState;
+      setCards(updated);
+      if (newState) {
+         toast.success('Card saved to Weaker Parts for revision', { icon: '📌' });
+      } else {
+         toast.success('Card removed from Weaker Parts');
+      }
+    } catch (error) {
+      console.error('Save error', error);
+      toast.error('Failed to change revision saving state');
     }
   };
 
@@ -238,19 +314,27 @@ const FlashcardPage = ({ chapterId: propChapterId }) => {
             <div className="w-full flex justify-center gap-4 mt-8 pt-6 border-t border-indigo-500/20">
               <button
                 onClick={handleReview}
-                className="flex flex-1 max-w-[160px] items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                className={`flex flex-1 max-w-[160px] items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all shadow-lg ${
+                  (timeSpentOnCard >= 5 || currentCard.isLearnt)
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white hover:scale-105 active:scale-95 shadow-emerald-500/20'
+                    : 'bg-emerald-500/30 text-emerald-200/50 cursor-not-allowed border border-emerald-500/20'
+                }`}
+                title={timeSpentOnCard < 5 && !currentCard.isLearnt ? `Must view for 5s (viewed ${timeSpentOnCard}s)` : 'Mark as learned'}
               >
-                <Eye size={18} /> Got it
+                <Eye size={18} /> {currentCard.isLearnt ? 'Learned ✔' : 'Got it'}
               </button>
+              
               <button
-                onClick={handleToggleStar}
-                className={`flex flex-1 max-w-[160px] items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95 border ${currentCard.isStarred
-                  ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30'
+                onClick={handleToggleSavedForRevision}
+                title="Feel difficult or forgetting? Save it for revision."
+                className={`flex flex-1 max-w-[180px] items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95 border ${
+                  currentCard.savedForRevision
+                  ? 'bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30'
                   : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 text-white'
                   }`}
               >
-                <Star size={18} className={currentCard.isStarred ? 'fill-yellow-400' : ''} />
-                {currentCard.isStarred ? 'Starred' : 'Star later'}
+                <Star size={18} className={currentCard.savedForRevision ? 'fill-orange-400 text-orange-400' : ''} />
+                {currentCard.savedForRevision ? 'Saved for Revision' : 'Save for Revision'}
               </button>
               <button
                 onClick={handleAskAi}

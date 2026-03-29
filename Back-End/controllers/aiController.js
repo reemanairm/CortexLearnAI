@@ -98,16 +98,23 @@ export const generateFlashcards = async (req, res, next) => {
 
     // Filter text if chapterId is provided
     let textToProcess = document.extractedText;
-    const { chapterId } = req.body;
+    const { chapterId, isAutomatic } = req.body;
     let targetChapter = null;
+    let chapterChunks = [];
 
     if (chapterId && document.chapters && document.chapters.length > 0) {
       targetChapter = document.chapters.id(chapterId);
       if (targetChapter) {
         console.log('Found chapter:', targetChapter.title, 'Chunks:', targetChapter.startChunkIndex, 'to', targetChapter.endChunkIndex);
-        const chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
+        chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
         textToProcess = chapterChunks.map(c => c.content).join('\n\n');
         console.log('Chapter text length:', textToProcess.length);
+        
+        // Dynamically scale flashcard count if automatic mode is engaged
+        if (isAutomatic) {
+           limit = Math.max(5, chapterChunks.length * 3); // ~3 dense flashcards per chunk to cover fully
+           console.log(`Automatic mode: Dynamic flashcard limit set to ${limit} for full coverage.`);
+        }
       }
     }
 
@@ -222,8 +229,9 @@ export const generateQuiz = async (req, res, next) => {
 
     // Filter text if chapterId is provided
     let textToProcess = document.extractedText;
-    const { chapterId } = req.body;
+    const { chapterId, isAutomatic } = req.body;
     let targetChapter = null;
+    let numQuestionsParsed = parseInt(numQuestions) || 5;
 
     if (chapterId && document.chapters && document.chapters.length > 0) {
       targetChapter = document.chapters.id(chapterId);
@@ -232,13 +240,18 @@ export const generateQuiz = async (req, res, next) => {
         const chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
         textToProcess = chapterChunks.map(c => c.content).join('\n\n');
         console.log('Chapter text length:', textToProcess.length);
+        
+        if (isAutomatic) {
+           numQuestionsParsed = Math.max(5, chapterChunks.length * 2); // ~2 tight quiz questions per chunk
+           console.log(`Automatic mode: Dynamic quiz limit set to ${numQuestionsParsed} for full coverage.`);
+        }
       }
     }
 
     // Generate quiz using Gemini - use text only, no file data
     const questions = await geminiService.generateQuiz(
       textToProcess,
-      parseInt(numQuestions),
+      numQuestionsParsed,
       req.body.difficulty || 'medium',
       null // Use text-only mode for processed documents
     );

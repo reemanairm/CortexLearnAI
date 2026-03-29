@@ -118,18 +118,32 @@ const LearningProgressPanel = () => {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-slate-500 font-bold uppercase tracking-tighter">Mastery Score</span>
-                    <span className={`font-black ${chapter.quizScore >= 70 ? 'text-emerald-400' : 'text-orange-400'}`}>
-                      {chapter.quizScore || 0}%
-                    </span>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex justify-between text-[10px] mb-1">
+                      <span className="text-slate-500 font-bold uppercase">Flashcards</span>
+                      <span className="text-indigo-400 font-bold">{chapter.flashcardsReviewed || 0} learnt</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                      <div 
+                         className="h-full bg-indigo-500 rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(99,102,241,0.4)]"
+                         style={{ width: `${Math.min(100, ((chapter.flashcardsReviewed || 0) / 10) * 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div 
-                       className={`h-full rounded-full transition-all duration-700 ${chapter.quizScore >= 70 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]'}`}
-                       style={{ width: `${chapter.quizScore || 0}%` }}
-                    ></div>
+                  <div className="flex-1 text-right">
+                    <div className="flex justify-between text-[10px] mb-1">
+                      <span className="text-slate-500 font-bold uppercase">Quiz Mastery</span>
+                      <span className={`font-black ${chapter.quizScore >= 70 ? 'text-emerald-400' : 'text-orange-400'}`}>
+                        {chapter.quizScore || 0}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                      <div 
+                         className={`h-full rounded-full transition-all duration-700 ${chapter.quizScore >= 70 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]'}`}
+                         style={{ width: `${chapter.quizScore || 0}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
 

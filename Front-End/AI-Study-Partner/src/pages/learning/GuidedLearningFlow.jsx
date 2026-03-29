@@ -79,7 +79,7 @@ const GuidedLearningFlow = () => {
       
       if (!chapterSet) {
         toast.loading('Generating chapter flashcards...', { id: 'gen-fc' });
-        await aiService.generateFlashcards(id, { chapterId, numCards: 10 });
+        await aiService.generateFlashcards(id, { chapterId, numCards: 10, isAutomatic: true });
         toast.success('Flashcards ready!', { id: 'gen-fc' });
       }
       setStep(2);
@@ -99,7 +99,7 @@ const GuidedLearningFlow = () => {
       
       if (!chapterQuiz) {
         toast.loading('Generating chapter quiz...', { id: 'gen-quiz' });
-        const genRes = await aiService.generateQuiz(id, { chapterId, numQuestions: 5 });
+        const genRes = await aiService.generateQuiz(id, { chapterId, numQuestions: 5, isAutomatic: true });
         chapterQuiz = genRes.data;
         toast.success('Quiz ready!', { id: 'gen-quiz' });
       }
@@ -141,6 +141,43 @@ const GuidedLearningFlow = () => {
 
   // STEP 1: TOPIC OVERVIEW
   if (step === 1) {
+    if (mode === 'revision') {
+      return (
+        <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <button 
+            onClick={() => navigate(`/documents/${id}`)}
+            className="flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors"
+          >
+            <ArrowLeft size={20} /> Back to Document
+          </button>
+  
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-orange-500/30 rounded-3xl p-8 sm:p-12 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+              
+              <div className="relative z-10 flex flex-col items-center text-center">
+                  <div className="p-4 bg-orange-500/20 rounded-full border border-orange-500/20 mb-4 inline-block">
+                      <ZapIcon className="text-orange-400" size={32} />
+                  </div>
+                  <h1 className="text-3xl font-extrabold text-white mt-1 mb-2">Targeted Revision</h1>
+                  <p className="text-slate-400 mb-8 max-w-lg">
+                    You're entering revision mode for <strong>{chapter.title}</strong>. 
+                    We'll only test you on flashcards you viewed for less than 5 seconds, cards you explicitly saved, and topics you struggled with in quizzes.
+                  </p>
+  
+                  <button 
+                      onClick={() => {
+                          startFlashcards();
+                      }}
+                      className="w-full sm:w-auto flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-lg shadow-orange-500/20 hover:scale-[1.02]"
+                  >
+                      Start Revision <ChevronRight size={20} />
+                  </button>
+              </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <button 
@@ -213,9 +250,8 @@ const GuidedLearningFlow = () => {
                     Continue to Quiz
                 </button>
              </div>
-             {/* We pass chapterId to FlashcardPage to reuse it. 
-                 We need to ensure FlashcardPage can handle chapterId prop. */}
-             <FlashcardPage chapterId={chapterId} />
+             {/* We pass chapterId to FlashcardPage to reuse it. */}
+             <FlashcardPage chapterId={chapterId} mode={mode} />
         </div>
     );
   }
@@ -271,13 +307,13 @@ const GuidedLearningFlow = () => {
                     {isPassing 
                       ? "You've successfully mastered the concepts in this chapter." 
                       : "You've finished the materials, but might want to review some topics."}
-                </p>
+            </p>
             </div>
 
             <div className="bg-slate-800/50 rounded-2xl p-8 mb-10 border border-slate-700/50 inline-block min-w-[200px]">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest block mb-1">Your Score</span>
                 <span className={`text-6xl font-black ${isPassing ? 'text-emerald-400' : 'text-orange-400'}`}>
-                    {quizResult?.score}%
+                    {quizResult?.score || quizResult?.quiz?.score || 0}%
                 </span>
             </div>
 
@@ -304,7 +340,18 @@ const GuidedLearningFlow = () => {
                 >
                     Back to Document
                 </button>
-                {!isPassing && (
+                
+                {isPassing ? (
+                    <button 
+                        onClick={() => {
+                           navigate(`/documents/${id}/learning/${chapterId}?mode=revision`);
+                           window.location.reload(); // Quick hack to rerender cleanly from scratch
+                        }}
+                        className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-orange-500/20"
+                    >
+                        Revise Weaker Parts
+                    </button>
+                ) : (
                     <button 
                         onClick={() => setStep(1)}
                         className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-orange-500/20"

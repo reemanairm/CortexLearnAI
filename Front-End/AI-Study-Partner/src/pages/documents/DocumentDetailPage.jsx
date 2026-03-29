@@ -24,6 +24,7 @@ import documentService from '../../services/documentservice';
 import aiService from '../../services/aiservice';
 import Loader from '../../components/common/Loader';
 import HelpWidget from '../../components/common/HelpWidget';
+import progressService from '../../services/progressService';
 import { BASE_URL } from '../../utils/apiPaths';
 
 const DocumentDetailPage = () => {
@@ -45,6 +46,7 @@ const DocumentDetailPage = () => {
   const [flashcardQty, setFlashcardQty] = useState(10);
   const [quizQty, setQuizQty] = useState(5);
   const [quizDifficultyPct, setQuizDifficultyPct] = useState(50); // 0-100 range
+  const [chapterProgress, setChapterProgress] = useState([]);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -91,6 +93,14 @@ const DocumentDetailPage = () => {
       }
       
       setDocument(docData);
+      
+      // Fetch progress
+      try {
+        const progRes = await progressService.getChapterProgress(id);
+        setChapterProgress(progRes.data || []);
+      } catch (err) {
+        console.error('Error fetching chapter progress:', err);
+      }
       
       // If document failed, show error
       if (res.data.status === 'failed') {
@@ -343,15 +353,26 @@ const DocumentDetailPage = () => {
             </div>
           </div>
 
-          <a
-            href={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-all border border-slate-700 hover:border-slate-600"
-          >
-            <Eye size={18} className="text-slate-400" />
-            Open Original PDF
-          </a>
+          <div className="w-full mt-4 h-[300px] lg:h-[400px] bg-slate-800/30 rounded-xl overflow-hidden border border-slate-700/50">
+            <object
+              data={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
+              type="application/pdf"
+              className="w-full h-full"
+            >
+              <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                <FileText size={32} className="text-slate-500 mb-2" />
+                <p className="text-sm text-slate-400">PDF preview is not supported in your browser.</p>
+                <a 
+                  href={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="mt-3 text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1"
+                >
+                  <Eye size={14} /> Open Original PDF instead
+                </a>
+              </div>
+            </object>
+          </div>
 
           {document.status === 'failed' && (
             <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
@@ -497,26 +518,44 @@ const DocumentDetailPage = () => {
           <div className="mt-4">
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-2 mb-4">Topics & Chapters</h3>
             <div className="flex flex-col gap-3">
-              {document.chapters.map((chapter) => (
-                <div key={chapter._id} className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-4 hover:border-indigo-500/30 transition-all group shadow-sm shadow-slate-900/50">
-                  <h4 className="font-bold text-white text-sm mb-1">{chapter.title}</h4>
-                  <p className="text-xs text-slate-400 mb-3 line-clamp-2 leading-relaxed">{chapter.summary}</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}`)}
-                      className="flex-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold py-2 rounded-lg transition-colors border border-indigo-500/20"
-                    >
-                      Start Learning
-                    </button>
-                    <button
-                      onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}?mode=revision`)}
-                      className="flex-1 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-lg transition-colors border border-orange-500/20"
-                    >
-                      Revision
-                    </button>
+              {document.chapters.map((chapter) => {
+                const prog = chapterProgress.find(p => p.chapterId === chapter._id);
+                const isCompleted = prog?.status === 'completed';
+                const isInProgress = prog?.status === 'in_progress' || prog?.status === 'needs_revision';
+                
+                return (
+                  <div key={chapter._id} className={`bg-slate-900/60 backdrop-blur-md border ${isCompleted ? 'border-emerald-500/30' : 'border-slate-800'} rounded-xl p-4 hover:border-indigo-500/30 transition-all group shadow-sm shadow-slate-900/50 relative overflow-hidden`}>
+                    {isCompleted && (
+                       <div className="absolute top-2 right-2 text-emerald-500 animate-in fade-in zoom-in duration-500">
+                          <CheckCircle2 size={16} />
+                       </div>
+                    )}
+                    <h4 className="font-bold text-white text-sm mb-1 pr-6">{chapter.title}</h4>
+                    <p className="text-xs text-slate-400 mb-3 line-clamp-2 leading-relaxed">{chapter.summary}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}`)}
+                        className={`flex-2 ${isCompleted ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'} hover:bg-opacity-20 text-xs font-bold py-2 px-3 rounded-lg transition-colors border flex items-center justify-center gap-1.5`}
+                      >
+                        {isCompleted ? (
+                           <>Re-learn</>
+                        ) : isInProgress ? (
+                           <>Continue Learning</>
+                        ) : (
+                           <>Start Learning</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}?mode=revision`)}
+                        className={`flex-1 ${prog?.status === 'needs_revision' ? 'bg-orange-500/20 border-orange-500/40 animate-pulse' : 'bg-orange-500/10 border-orange-500/20'} hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-lg transition-colors border flex items-center justify-center gap-1.5`}
+                        title={prog?.status === 'needs_revision' ? 'Review weak areas detected from quiz' : 'Targeted Revision'}
+                      >
+                        Revision
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

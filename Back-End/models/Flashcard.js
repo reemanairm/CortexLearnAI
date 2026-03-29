@@ -44,6 +44,18 @@ const flashcardSchema = new mongoose.Schema({
     isStarred: {
       type: Boolean,
       default: false
+    },
+    timeSpent: {
+      type: Number,
+      default: 0
+    },
+    isLearnt: {
+      type: Boolean,
+      default: false
+    },
+    savedForRevision: {
+      type: Boolean,
+      default: false
     }
   }],
   createdAt: {

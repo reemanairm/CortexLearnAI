@@ -104,8 +104,8 @@ export const getDashboard = async (req, res, next) => {
 
     // 3. Flashcard Mastery
     const masteredFlashcards = flashcardSets.reduce((count, set) => {
-      // Consider a card mastered if reviewed > 2 times and not starred (implying they know it)
-      return count + set.cards.filter(c => c.reviewCount >= 2 && !c.isStarred).length;
+      // Consider a card mastered if it is explicitly marked as learnt
+      return count + set.cards.filter(c => c.isLearnt).length;
     }, 0);
     
     const flashcardMasteryPercentage = totalFlashcards > 0 
@@ -212,8 +212,19 @@ export const updateChapterProgress = async (req, res, next) => {
     if (flashcardsReviewed !== undefined) progress.flashcardsReviewed = flashcardsReviewed;
     if (quizScore !== undefined) {
       progress.quizScore = quizScore;
-      if (quizScore < 70 && progress.status !== 'completed') progress.status = 'needs_revision';
-      else if (quizScore >= 70) progress.status = 'completed';
+      
+      const Flashcard = (await import('../models/Flashcard.js')).default;
+      const flashcardSet = await Flashcard.findOne({ documentId, chapterId, userId: req.user._id });
+      const learntFlashcards = flashcardSet ? flashcardSet.cards.filter(c => c.isLearnt).length : 0;
+      const totalFlashcards = flashcardSet ? flashcardSet.cards.length : 1; // avoid div by zero
+
+      if (quizScore >= 70 && (learntFlashcards / totalFlashcards >= 0.9)) {
+        progress.status = 'completed';
+      } else if (quizScore < 70) {
+        progress.status = 'needs_revision';
+      } else {
+        progress.status = 'in_progress';
+      }
     }
     if (weakTopics !== undefined) progress.weakTopics = weakTopics;
 
