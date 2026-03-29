@@ -1,12 +1,5 @@
 import fs from 'fs/promises';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
-const require = createRequire(import.meta.url);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const pdf = require('pdf-parse');
+import { PDFParse } from 'pdf-parse';
 
 /**
  * Extract text from PDF file
@@ -29,15 +22,22 @@ export const extractTextFromPDF = async (filePath) => {
     const dataBuffer = await fs.readFile(filePath);
     console.log(`[PDF Parser] File read successfully, size: ${dataBuffer.length} bytes`);
     
-    // Use pdf-parse (CommonJS module via createRequire)
-    const data = await pdf(dataBuffer);
+    // Initialize the parser
+    const parser = new PDFParse({ data: dataBuffer });
 
-    console.log(`[PDF Parser] PDF parsed successfully: ${data.numpages} pages, ${data.text?.length || 0} characters`);
+    // Extract text and info
+    const info = await parser.getInfo();
+    const textResult = await parser.getText();
+    
+    // Important: Free resources
+    await parser.destroy();
+
+    console.log(`[PDF Parser] PDF parsed successfully: ${info.total} pages, ${textResult.text?.length || 0} characters`);
 
     return {
-      text: data.text,
-      numPages: data.numpages,
-      info: data.info || {},
+      text: textResult.text,
+      numPages: info.total,
+      info: info.info || {},
     };
   } catch (error) {
     console.error("[PDF Parser] Error:", error);

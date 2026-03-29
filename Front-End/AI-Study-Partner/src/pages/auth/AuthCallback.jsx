@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -7,8 +7,12 @@ import { BrainCircuit, Sparkles } from 'lucide-react';
 const AuthCallback = () => {
   const navigate = useNavigate();
   const { handleGoogleCallback } = useAuth();
+  const hasAttempted = useRef(false);
 
   useEffect(() => {
+    if (hasAttempted.current) return;
+    hasAttempted.current = true;
+
     const handleCallback = async () => {
       try {
         const result = await handleGoogleCallback();
