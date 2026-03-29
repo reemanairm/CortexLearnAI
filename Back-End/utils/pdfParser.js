@@ -1,6 +1,12 @@
 import fs from 'fs/promises';
 import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
 const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const pdf = require('pdf-parse');
 
 /**
  * Extract text from PDF file
@@ -9,25 +15,32 @@ const require = createRequire(import.meta.url);
  */
 export const extractTextFromPDF = async (filePath) => {
   try {
+    console.log(`[PDF Parser] Attempting to read PDF from: ${filePath}`);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+      console.log(`[PDF Parser] File exists: ${filePath}`);
+    } catch (accessError) {
+      console.error(`[PDF Parser] File access error: ${filePath}`, accessError.message);
+      throw new Error(`Cannot access file: ${filePath}`);
+    }
+    
     const dataBuffer = await fs.readFile(filePath);
+    console.log(`[PDF Parser] File read successfully, size: ${dataBuffer.length} bytes`);
     
-    // Handle the modern pdf-parse (v2.x) API
-    // It's a class that needs instantiation
-    const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse({ data: dataBuffer });
-    
-    // getText() returns an object with 'text' and 'total' (numPages)
-    const result = await parser.getText();
+    // Use pdf-parse (CommonJS module via createRequire)
+    const data = await pdf(dataBuffer);
 
-    console.log(`Successfully extracted ${result.text?.length || 0} characters from PDF: ${filePath}`);
+    console.log(`[PDF Parser] PDF parsed successfully: ${data.numpages} pages, ${data.text?.length || 0} characters`);
 
     return {
-      text: result.text,
-      numPages: result.total,
-      info: {}, // Modern API might store this differently, but we mainly need text
+      text: data.text,
+      numPages: data.numpages,
+      info: data.info || {},
     };
   } catch (error) {
-    console.error("PDF parsing error:", error);
+    console.error("[PDF Parser] Error:", error);
     throw new Error(`PDF Parser Error: ${error.message}`);
   }
 };

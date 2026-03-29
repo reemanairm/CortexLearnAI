@@ -90,6 +90,10 @@ const documentSchema = new mongoose.Schema(
   errorReason: {
     type: String,
   },
+  pageCount: {
+    type: Number,
+    default: 0,
+  },
 },
 {
   timestamps: true,

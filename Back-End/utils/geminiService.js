@@ -3,21 +3,22 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 dotenv.config();
 
-const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-if (!process.env.GEMINI_API_KEY) {
+// Initialize Gemini API
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
   console.error('FATAL ERROR: GEMINI_API_KEY is not set in environment variables.');
-  process.exit(1);
 }
+
+const ai = new GoogleGenerativeAI(apiKey);
 
 /* ---------------------------------------------------
    Generate Flashcards (Structured JSON)
 --------------------------------------------------- */
 export const generateFlashcards = async (text, count = 10, fileData = null) => {
   const prompt = `You are an expert flashcard creator. Generate exactly ${count} high-quality educational flashcards.
-  
+
   IMPORTANT: Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
-  
+
   Read the provided document and create comprehensive flashcards based on the key concepts.
   If text is provided:
   ${text ? text.substring(0, 20000) : "No text provided, rely on the document file."}`;
@@ -36,31 +37,31 @@ export const generateFlashcards = async (text, count = 10, fileData = null) => {
   };
 
   try {
+    console.log('[Gemini] Generating flashcards, count:', count, 'text length:', text?.length || 0);
     const model = ai.getGenerativeModel({
-      model: 'gemini-1.5-flash', // stable version for maximum availability
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
       }
     });
 
-    const contentParts = [prompt];
-    // If a file was uploaded and passed in, use it for multimodal context
-    if (fileData) {
-      contentParts.push(fileData);
-    }
-
-    const result = await model.generateContent(contentParts);
-    let flashcards = JSON.parse(result.response.text());
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[Gemini] Raw response:', responseText.substring(0, 200));
+    
+    let flashcards = JSON.parse(responseText);
 
     if (!Array.isArray(flashcards)) {
       flashcards = flashcards.flashcards || [];
     }
 
+    console.log('[Gemini] Flashcards generated:', flashcards.length);
     return flashcards.slice(0, count);
   } catch (error) {
-    console.error('Gemini API (Flashcards) error:', error);
-    throw new Error('Failed to generate flashcards');
+    console.error('[Gemini] Flashcards API error:', error.message);
+    console.error('[Gemini] Error details:', error);
+    throw new Error(`Gemini API Error: ${error.message}`);
   }
 };
 
@@ -99,31 +100,31 @@ ${text ? text.substring(0, 15000) : "No text provided, rely on the document file
   };
 
   try {
+    console.log('[Gemini] Generating quiz, questions:', numQuestions, 'difficulty:', difficultyPref, 'text length:', text?.length || 0);
     const model = ai.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
       }
     });
 
-    const contentParts = [prompt];
-    // If a file was uploaded and passed in, use it for multimodal context
-    if (fileData) {
-      contentParts.push(fileData);
-    }
-
-    const result = await model.generateContent(contentParts);
-    let questions = JSON.parse(result.response.text());
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[Gemini] Raw response:', responseText.substring(0, 200));
+    
+    let questions = JSON.parse(responseText);
 
     if (!Array.isArray(questions)) {
       questions = questions.questions || [];
     }
 
+    console.log('[Gemini] Questions generated:', questions.length);
     return questions.slice(0, numQuestions);
   } catch (error) {
-    console.error('Gemini API (Quiz) error:', error);
-    throw new Error('Failed to generate quiz');
+    console.error('[Gemini] Quiz API error:', error.message);
+    console.error('[Gemini] Error details:', error);
+    throw new Error(`Gemini API Error: ${error.message}`);
   }
 };
 
@@ -139,18 +140,16 @@ ${text ? "Text context:\n" + text.substring(0, 20000) : ""}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const contentParts = [prompt];
-    // If a file was uploaded and passed in, use it for multimodal context
-    if (fileData) {
-      contentParts.push(fileData);
-    }
-
-    const result = await model.generateContent(contentParts);
-    return result.response.text();
+    console.log('[Gemini] Generating summary, text length:', text?.length || 0);
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[Gemini] Summary generated, length:', responseText?.length || 0);
+    return responseText;
   } catch (error) {
-    console.error('Gemini API (Summary) error:', error);
-    throw new Error('Failed to generate summary');
+    console.error('[Gemini] Summary API error:', error.message);
+    console.error('[Gemini] Error details:', error);
+    throw new Error(`Gemini API Error: ${error.message}`);
   }
 };
 // ---- Chat with Document Context ----
@@ -179,7 +178,7 @@ Answer:
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const contentParts = [prompt];
     if (fileData) {
       contentParts.push(fileData);
@@ -205,7 +204,7 @@ ${context.substring(0, 10000)}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error) {
@@ -232,7 +231,7 @@ ${transcript.substring(0, 30000)}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error) {
@@ -281,7 +280,7 @@ ${text.substring(0, 25000)}
 
   try {
     const model = ai.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,

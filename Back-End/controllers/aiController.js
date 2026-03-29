@@ -40,6 +40,13 @@ const getFileDataForGemini = async (document) => {
 // @access    Private
 export const generateFlashcards = async (req, res, next) => {
   try {
+    console.log('Generate flashcards request:', {
+      documentId: req.body.documentId,
+      numCards: req.body.numCards || req.body.count,
+      chapterId: req.body.chapterId,
+      userId: req.user._id
+    });
+
     // accept either `numCards` from frontend or legacy `count`
     const { documentId, numCards, count } = req.body;
     const limit = parseInt(numCards ?? count ?? 10, 10);
@@ -58,6 +65,7 @@ export const generateFlashcards = async (req, res, next) => {
     });
 
     if (!document) {
+      console.error('Document not found:', documentId);
       return res.status(404).json({
         success: false,
         error: 'Document not found',
@@ -65,7 +73,10 @@ export const generateFlashcards = async (req, res, next) => {
       });
     }
 
+    console.log('Document status:', document.status, 'Extracted text length:', document.extractedText?.length || 0);
+
     if (document.status !== 'ready') {
+      console.error('Document not ready:', document.status);
       return res.status(400).json({
         success: false,
         error: `Document is currently ${document.status}. Please wait for processing to complete.`,
@@ -73,7 +84,17 @@ export const generateFlashcards = async (req, res, next) => {
       });
     }
 
-    const fileData = await getFileDataForGemini(document);
+    if (!document.extractedText || document.extractedText.length === 0) {
+      console.error('No extracted text in document');
+      return res.status(400).json({
+        success: false,
+        error: 'Document has no extracted text. Please re-upload the document.',
+        statusCode: 400
+      });
+    }
+
+    // Don't use fileData for processed documents - extracted text works better
+    // const fileData = await getFileDataForGemini(document);
 
     // Filter text if chapterId is provided
     let textToProcess = document.extractedText;
@@ -81,20 +102,23 @@ export const generateFlashcards = async (req, res, next) => {
     let targetChapter = null;
 
     if (chapterId && document.chapters && document.chapters.length > 0) {
-      targetChapter = document.chapters.id(chapterId); // mongoose array lookup
+      targetChapter = document.chapters.id(chapterId);
       if (targetChapter) {
-        // combine chunks for this chapter
+        console.log('Found chapter:', targetChapter.title, 'Chunks:', targetChapter.startChunkIndex, 'to', targetChapter.endChunkIndex);
         const chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
         textToProcess = chapterChunks.map(c => c.content).join('\n\n');
+        console.log('Chapter text length:', textToProcess.length);
       }
     }
 
-    // Generate flashcards using Gemini
+    // Generate flashcards using Gemini - use text only, no file data
     const cards = await geminiService.generateFlashcards(
       textToProcess,
       limit,
-      targetChapter ? null : fileData // Do not send full file if scoped to chapter
+      null // Use text-only mode for processed documents
     );
+
+    console.log('Generated flashcards:', cards?.length || 0);
 
     if (!cards || cards.length === 0) {
       return res.status(500).json({
@@ -142,6 +166,13 @@ export const generateFlashcards = async (req, res, next) => {
 // @access    Private
 export const generateQuiz = async (req, res, next) => {
   try {
+    console.log('Generate quiz request:', {
+      documentId: req.body.documentId,
+      numQuestions: req.body.numQuestions,
+      chapterId: req.body.chapterId,
+      userId: req.user._id
+    });
+
     const { documentId, numQuestions = 5, title } = req.body;
 
     if (!documentId) {
@@ -158,6 +189,7 @@ export const generateQuiz = async (req, res, next) => {
     });
 
     if (!document) {
+      console.error('Document not found:', documentId);
       return res.status(404).json({
         success: false,
         error: 'Document not found',
@@ -165,7 +197,10 @@ export const generateQuiz = async (req, res, next) => {
       });
     }
 
+    console.log('Document status:', document.status, 'Extracted text length:', document.extractedText?.length || 0);
+
     if (document.status !== 'ready') {
+      console.error('Document not ready:', document.status);
       return res.status(400).json({
         success: false,
         error: `Document is ${document.status}. Quiz generation requires a ready document.`,
@@ -173,7 +208,17 @@ export const generateQuiz = async (req, res, next) => {
       });
     }
 
-    const fileData = await getFileDataForGemini(document);
+    if (!document.extractedText || document.extractedText.length === 0) {
+      console.error('No extracted text in document');
+      return res.status(400).json({
+        success: false,
+        error: 'Document has no extracted text. Please re-upload the document.',
+        statusCode: 400
+      });
+    }
+
+    // Don't use fileData for processed documents - extracted text works better
+    // const fileData = await getFileDataForGemini(document);
 
     // Filter text if chapterId is provided
     let textToProcess = document.extractedText;
@@ -183,17 +228,19 @@ export const generateQuiz = async (req, res, next) => {
     if (chapterId && document.chapters && document.chapters.length > 0) {
       targetChapter = document.chapters.id(chapterId);
       if (targetChapter) {
+        console.log('Found chapter:', targetChapter.title, 'Chunks:', targetChapter.startChunkIndex, 'to', targetChapter.endChunkIndex);
         const chapterChunks = document.chunks.slice(targetChapter.startChunkIndex, targetChapter.endChunkIndex + 1);
         textToProcess = chapterChunks.map(c => c.content).join('\n\n');
+        console.log('Chapter text length:', textToProcess.length);
       }
     }
 
-    // Generate quiz using Gemini
+    // Generate quiz using Gemini - use text only, no file data
     const questions = await geminiService.generateQuiz(
       textToProcess,
       parseInt(numQuestions),
       req.body.difficulty || 'medium',
-      targetChapter ? null : fileData // Do not send full file if scoped to chapter
+      null // Use text-only mode for processed documents
     );
 
     // ensure we actually received questions
@@ -234,12 +281,18 @@ export const generateQuiz = async (req, res, next) => {
 // @access  Private
 export const generateSummary = async (req, res, next) => {
   try {
+    console.log('Generate summary request:', {
+      documentId: req.body.documentId,
+      userId: req.user._id
+    });
+
     const document = await Document.findOne({
       _id: req.body.documentId,
       userId: req.user._id
     });
 
     if (!document) {
+      console.error('Document not found:', req.body.documentId);
       return res.status(404).json({
         success: false,
         error: 'Document not found',
@@ -247,7 +300,10 @@ export const generateSummary = async (req, res, next) => {
       });
     }
 
+    console.log('Document status:', document.status, 'Extracted text length:', document.extractedText?.length || 0);
+
     if (document.status !== 'ready') {
+      console.error('Document not ready:', document.status);
       return res.status(400).json({
         success: false,
         error: 'Document is not ready for summary generation',
@@ -255,12 +311,19 @@ export const generateSummary = async (req, res, next) => {
       });
     }
 
-    const fileData = await getFileDataForGemini(document);
+    if (!document.extractedText || document.extractedText.length === 0) {
+      console.error('No extracted text in document');
+      return res.status(400).json({
+        success: false,
+        error: 'Document has no extracted text. Please re-upload the document.',
+        statusCode: 400
+      });
+    }
 
-    const summary = await geminiService.generateSummary(
-      document.extractedText,
-      fileData
-    );
+    // Don't send file data - use extracted text only (works better for processed docs)
+    const summary = await geminiService.generateSummary(document.extractedText, null);
+
+    console.log('Summary generated, length:', summary?.length || 0);
 
     res.status(200).json({
       success: true,
@@ -273,6 +336,7 @@ export const generateSummary = async (req, res, next) => {
     });
 
   } catch (error) {
+    console.error('Summary generation error:', error);
     next(error);
   }
 };
@@ -335,13 +399,14 @@ export const chat = async (req, res, next) => {
       });
     }
 
-    const fileData = await getFileDataForGemini(document);
+    // Don't use fileData - use chunks context only
+    // const fileData = await getFileDataForGemini(document);
 
     // Generate response using Gemini
     const answer = await geminiService.chatWithContext(
       question,
       relevantChunks,
-      fileData
+      null // Use text-only mode
     );
 
     // Save conversation
