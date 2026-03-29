@@ -197,7 +197,7 @@ const LearningProgressPanel = () => {
         <div className="bg-slate-800/30 rounded-3xl p-12 text-center border-2 border-dashed border-slate-700/50">
           <BrainCircuit className="text-slate-600 mx-auto mb-4" size={48} />
           <h3 className="text-lg font-bold text-slate-300 mb-2">No Chapters Detected Yet</h3>
-          <p className="text-slate-500 max-w-sm mx-auto">Upload a structured document or video to see topic-wise progress here.</p>
+          <p className="text-slate-500 max-w-sm mx-auto">Upload a structured document to see topic-wise progress here.</p>
         </div>
       )}
 

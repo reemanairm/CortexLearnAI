@@ -222,37 +222,6 @@ ${context.substring(0, 10000)}
 };
 
 /* ---------------------------------------------------
-   Generate Structured Notes from Transcript
---------------------------------------------------- */
-export const generateStructuredNotes = async (transcript) => {
-  const prompt = `
-You are an expert educational AI and polyglot. Convert the following video transcript into extremely detailed and structured study notes.
-
-CRITICAL INSTRUCTIONS:
-1. MULTI-LINGUAL HANDLING: The transcript may be in Hindi, English, or a mix (Hinglish). If it is in Hindi, translate it accurately and produce the final notes in English.
-2. EXHAUSTIVE COVERAGE: Do not summarize briefly. Extract every key fact, definition, and example mentioned in the video.
-3. STRUCTURE:
-   - Start with a clear Title (e.g., # Topic Name)
-   - Use nested headings (##, ###) for sub-topics.
-   - Use bullet points for readability.
-   - Include a "Key Terms" section.
-   - End with a "Summary & Conclusion" section.
-
-Transcript to process:
-${transcript.substring(0, 30000)}
-`;
-
-  try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' }); 
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (error) {
-    console.error('Gemini API (Notes) error:', error);
-    throw new Error('Failed to generate structured notes');
-  }
-};
-
-/* ---------------------------------------------------
    Detect Chapters or Topics
 --------------------------------------------------- */
 export const detectChapters = async (text) => {

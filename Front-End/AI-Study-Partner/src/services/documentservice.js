@@ -14,10 +14,6 @@ const uploadDocument = async (formData) => {
     try {
         // Don't set Content-Type header - let axios/browser set it automatically with boundary
         const response = await axiosInstance.post(API_PATHS.DOCUMENTS.UPLOAD, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-            // Ensure timeout is sufficient for large files
             timeout: 120000,
         });
         return response.data;
@@ -45,21 +41,11 @@ const getDocumentById = async (id) => {
     }
 };
 
-const processVideo = async (data) => {
-    try {
-        const response = await axiosInstance.post(API_PATHS.DOCUMENTS.VIDEO_PROCESS || '/documents/video', data);
-        return response.data;
-    } catch (error) {
-        throw error.response?.data || { message: 'Failed to process video' };
-    }
-};
-
 const documentService = {
     getDocuments,
     uploadDocument,
     deleteDocument,
     getDocumentById,
-    processVideo,
 };
 
 export default documentService;

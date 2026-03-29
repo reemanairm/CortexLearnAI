@@ -14,7 +14,6 @@ export const API_PATHS = {
 
   DOCUMENTS: {
     UPLOAD: "/documents/upload",
-    VIDEO_PROCESS: "/documents/video",
     GET_DOCUMENTS: "/documents",
     GET_DOCUMENT_BY_ID: (id) => `/documents/${id}`,
     UPDATE_DOCUMENT: (id) => `/documents/${id}`,
