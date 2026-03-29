@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Trash2, Eye, FileText, FileUp, Sparkles, Clock, Zap as ZapIcon, BookOpen } from 'lucide-react';
+import { Upload, Trash2, Eye, FileText, FileUp, Sparkles, Clock, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
@@ -10,10 +10,6 @@ const DocumentListPage = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [videoUrl, setVideoUrl] = useState('');
-  const [pastedTranscript, setPastedTranscript] = useState('');
-  const [showManualPaste, setShowManualPaste] = useState(false);
-  const [processingVideo, setProcessingVideo] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -25,7 +21,6 @@ const DocumentListPage = () => {
     try {
       setLoading(true);
       const res = await documentService.getDocuments();
-      // Ensure we extract the array properly depending on the response structure
       const docsArray = res.data?.documents || res.data || [];
       setDocuments(Array.isArray(docsArray) ? docsArray : []);
     } catch (error) {
@@ -49,7 +44,6 @@ const DocumentListPage = () => {
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
-      // include a title so backend validation passes; default to filename without extension
       const defaultTitle = file.name.replace(/\.pdf$/i, '');
       formData.append('title', defaultTitle);
 
@@ -66,51 +60,12 @@ const DocumentListPage = () => {
     }
   };
 
-  const handleVideoSubmit = async (e) => {
-    e.preventDefault();
-    if (!videoUrl.trim() && !pastedTranscript.trim()) return;
-
-    try {
-      setProcessingVideo(true);
-      const res = await documentService.processVideo({ 
-        videoUrl: videoUrl.trim(),
-        pastedTranscript: showManualPaste ? pastedTranscript.trim() : null
-      });
-      toast.success('Video processed successfully! 🎉');
-      setVideoUrl('');
-      setPastedTranscript('');
-      setShowManualPaste(false);
-      if (res.data?._id) {
-        navigate(`/documents/${res.data._id}`);
-      } else {
-        fetchDocuments();
-      }
-    } catch (error) {
-      console.error('Error processing video:', error);
-      const isBlocked = error.response?.data?.isBlocked || error.response?.status === 429;
-      
-      if (isBlocked) {
-        setShowManualPaste(true);
-        toast.error('YouTube blocked the automated fetch. Please paste the transcript below!', { duration: 6000 });
-      } else {
-        toast.error(error.response?.data?.error || error.message || 'Failed to process video');
-      }
-    } finally {
-      setProcessingVideo(false);
-    }
-  };
-
-  const onFileInputChange = (e) => {
-    handleFileUpload(e.target.files?.[0]);
-  };
-
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragOver(true);
   };
 
-  const handleDragLeave = (e) => {
-    e.preventDefault();
+  const handleDragLeave = () => {
     setIsDragOver(false);
   };
 
@@ -121,8 +76,12 @@ const DocumentListPage = () => {
     handleFileUpload(file);
   };
 
+  const onFileInputChange = (e) => {
+    handleFileUpload(e.target.files[0]);
+  };
+
   const handleDelete = async (id, e) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this document? All associated flashcards and quizzes will also be deleted.')) {
       try {
         await documentService.deleteDocument(id);
@@ -142,7 +101,6 @@ const DocumentListPage = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12 min-h-[80vh]">
 
-      {/* Hidden File Input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -151,7 +109,6 @@ const DocumentListPage = () => {
         className="hidden"
       />
 
-      {/* Library Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
@@ -164,14 +121,11 @@ const DocumentListPage = () => {
         </div>
       </div>
 
-      {/* Balanced Entry Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-        
-        {/* Card 1: PDF Upload */}
+      <div className="mt-4">
         <div 
-          className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-8 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[300px] group ${
+          className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[400px] group cursor-pointer ${
             isDragOver 
-              ? 'border-indigo-500 bg-indigo-500/10 scale-[1.02]' 
+              ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]' 
               : 'border-slate-800 bg-slate-900/40 hover:border-indigo-500/40 hover:bg-slate-900/60'
           }`}
           onDragOver={handleDragOver}
@@ -179,103 +133,37 @@ const DocumentListPage = () => {
           onDrop={handleDrop}
           onClick={() => !uploading && fileInputRef.current?.click()}
         >
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <FileUp size={120} className="text-indigo-400" />
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <FileUp size={160} className="text-indigo-400" />
           </div>
           
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 ${
+          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${
             isDragOver ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-800 text-indigo-400'
           }`}>
-            <Upload size={32} />
+            <Upload size={40} />
           </div>
           
-          <h2 className="text-xl font-bold text-white mb-2">Upload PDF Document</h2>
-          <p className="text-sm text-slate-400 max-w-[250px] mx-auto mb-6 font-medium leading-relaxed">
-            Drag and drop your textbook or lecture notes (PDF only)
+          <h2 className="text-2xl font-bold text-white mb-3">Upload Study Material</h2>
+          <p className="text-slate-400 max-w-[350px] mx-auto mb-8 font-medium leading-relaxed">
+            Drag and drop your textbooks, PDFs, or lecture notes here to generate instant AI study aids
           </p>
-          
-          <button
-            disabled={uploading || processingVideo}
-            className="px-6 py-2.5 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white font-bold rounded-xl border border-indigo-500/20 hover:border-indigo-500 transition-all text-sm"
+                   <button
+            disabled={uploading}
+            className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
           >
-            {uploading ? 'Uploading...' : 'Browse Local Files'}
+            {uploading ? 'Processing Document...' : 'Select PDF from Computer'}
           </button>
-        </div>
 
-        {/* Card 2: Video to Notes */}
-        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[300px] group hover:border-violet-500/40 hover:bg-slate-900/60 transition-all duration-300">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <ZapIcon size={120} className="text-violet-400" />
-          </div>
-
-          <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4 text-violet-400 group-hover:bg-violet-500 group-hover:text-white transition-all shadow-lg">
-            <FileText size={32} />
-          </div>
-
-          <h2 className="text-xl font-bold text-white mb-2">YouTube Video to Notes</h2>
-          <p className="text-sm text-slate-400 max-w-[250px] mx-auto mb-6 font-medium leading-relaxed">
-            Paste a link to generate structured PDF notes instantly
-          </p>
-          
-          <form onSubmit={handleVideoSubmit} className="w-full max-w-[320px] space-y-3">
-            <input
-              type="text"
-              placeholder="https://youtube.com/..."
-              value={videoUrl}
-              onChange={(e) => {
-                setVideoUrl(e.target.value);
-                if (showManualPaste) setShowManualPaste(false);
-              }}
-              disabled={processingVideo || uploading}
-              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all"
-            />
-            
-            {showManualPaste && (
-              <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider pl-1">
-                  Manual Fallback: Paste Transcript Below
-                </p>
-                <textarea
-                  placeholder="Click 'Show Transcript' on YouTube & paste the text here..."
-                  value={pastedTranscript}
-                  onChange={(e) => setPastedTranscript(e.target.value)}
-                  disabled={processingVideo}
-                  rows={4}
-                  className="w-full bg-slate-800/80 border border-orange-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all resize-none"
-                />
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={processingVideo || uploading || (!videoUrl.trim() && !pastedTranscript.trim())}
-              className={`w-full py-2.5 ${showManualPaste ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20' : 'bg-violet-600 hover:bg-violet-500 shadow-violet-500/20'} text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 text-sm flex items-center justify-center gap-2`}
-            >
-              {processingVideo ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Generating...
-                </>
-              ) : showManualPaste ? (
-                'Process Pasted Transcript'
-              ) : (
-                'Generate from Video'
-              )}
-            </button>
-          </form>
+          {uploading && (
+            <div className="mt-8 flex items-center gap-3 animate-pulse">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100"></div>
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></div>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">AI is creating your notes</span>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Progress Indicators */}
-      {(uploading || processingVideo) && (
-        <div className="w-full bg-slate-900 border border-indigo-500/30 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-300">
-          <div className="w-12 h-12 rounded-full border-t-2 border-indigo-500 animate-spin"></div>
-          <div className="text-center">
-            <p className="text-white font-bold tracking-wide">Processing Content...</p>
-            <p className="text-slate-400 text-sm mt-1">AI is analyzing the source material and creating your study guide</p>
-          </div>
-        </div>
-      )}
 
       {/* Study Library (Existing Documents) */}
       <div className="mt-12">
@@ -364,17 +252,16 @@ const DocumentListPage = () => {
               </div>
             ))}
           </div>
-        ) : !uploading && !processingVideo && (
+        ) : !uploading && (
           <div className="text-center py-20 bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-3xl">
             <BookOpen size={48} className="text-slate-700 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-slate-300 mb-2">Your library is empty</h3>
-            <p className="text-slate-500 mb-8">Start by adding a PDF or a video above</p>
+            <p className="text-slate-500 mb-8">Start by adding a study material PDF above</p>
           </div>
         )}
       </div>
-
     </div>
   );
 };
 
-export default DocumentListPage;
+export default DocumentListPage;ge;
