@@ -83,11 +83,23 @@ const DocumentDetailPage = () => {
       const res = await documentService.getDocumentById(id);
       // backend returns fileName (camelCase) – normalize for UI
       console.log('Document fetched:', res.data);
-      setDocument(res.data);
+      const docData = res.data;
+      
+      // Ensure pageCount is set correctly
+      if (!docData.pageCount && docData.chunks && docData.chunks.length > 0) {
+        docData.pageCount = Math.max(docData.chunks.length, 1);
+      }
+      
+      setDocument(docData);
       
       // If document failed, show error
       if (res.data.status === 'failed') {
         toast.error(`Processing failed: ${res.data.errorReason || 'Unknown error'}`);
+      } else if (res.data.status === 'ready') {
+        // Document is ready but no pageCount - might be old data
+        if (!res.data.pageCount || res.data.pageCount === 0) {
+          console.log('Document ready but pageCount is 0, chunks:', res.data.chunks?.length);
+        }
       }
     } catch (error) {
       console.error('Error fetching document:', error);
