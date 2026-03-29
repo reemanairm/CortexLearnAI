@@ -108,62 +108,100 @@ const DocumentListPage = () => {
         onChange={onFileInputChange}
         className="hidden"
       />
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
               <Sparkles className="text-indigo-400" size={24} />
             </div>
-            Create Study Material
+            Smart Study Library
           </h1>
-          <p className="text-slate-400 mt-2 font-medium">Choose a source to generate your AI study aids</p>
+          <p className="text-slate-400 mt-2 font-medium">Generate AI study guides, flashcards, and quizzes from your PDFs</p>
         </div>
-      </div>
 
-      <div className="mt-4">
-        <div 
-          className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[400px] group cursor-pointer ${
-            isDragOver 
-              ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]' 
-              : 'border-slate-800 bg-slate-900/40 hover:border-indigo-500/40 hover:bg-slate-900/60'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => !uploading && fileInputRef.current?.click()}
-        >
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-            <FileUp size={160} className="text-indigo-400" />
-          </div>
-          
-          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${
-            isDragOver ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-800 text-indigo-400'
-          }`}>
-            <Upload size={40} />
-          </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-3">Upload Study Material</h2>
-          <p className="text-slate-400 max-w-[350px] mx-auto mb-8 font-medium leading-relaxed">
-            Drag and drop your textbooks, PDFs, or lecture notes here to generate instant AI study aids
-          </p>
-                   <button
-            disabled={uploading}
-            className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+        {/* Medium-sized Upload Area in Right Corner (only if docs exist) */}
+        {documents.length > 0 && (
+          <div
+            className={`relative group cursor-pointer w-full sm:w-auto min-w-[280px] h-20 border-2 border-dashed rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 ${isDragOver
+                ? 'border-indigo-500 bg-indigo-500/10 scale-[1.02]'
+                : 'border-slate-800 bg-slate-900/40 hover:border-indigo-500/40'
+              }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              handleFileUpload(e.dataTransfer.files?.[0]);
+            }}
+            onClick={() => !uploading && fileInputRef.current?.click()}
           >
-            {uploading ? 'Processing Document...' : 'Select PDF from Computer'}
-          </button>
-
-          {uploading && (
-            <div className="mt-8 flex items-center gap-3 animate-pulse">
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100"></div>
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></div>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">AI is creating your notes</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDragOver ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-indigo-400'
+              }`}>
+              <Upload size={20} />
             </div>
-          )}
-        </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white leading-tight">Add New Material</p>
+              <p className="text-xs text-slate-500 mt-0.5">Drag PDF or Click to upload</p>
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs rounded-2xl flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Processing</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Large Featured Upload Area (only if library is empty) */}
+      {documents.length === 0 && (
+        <div className="mt-4">
+          <div
+            className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[350px] group cursor-pointer ${isDragOver
+                ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]'
+                : 'border-slate-800 bg-slate-900/40 hover:border-indigo-500/40 hover:bg-slate-900/60'
+              }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              handleFileUpload(e.dataTransfer.files?.[0]);
+            }}
+            onClick={() => !uploading && fileInputRef.current?.click()}
+          >
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+              <FileUp size={160} className="text-indigo-400" />
+            </div>
+
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${isDragOver ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-800 text-indigo-400'
+              }`}>
+              <Upload size={40} />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-3">Upload Study Material</h2>
+            <p className="text-slate-400 max-w-[350px] mx-auto mb-8 font-medium leading-relaxed">
+              Drag and drop your textbooks, PDFs, or lecture notes here to generate instant AI study aids
+            </p>
+
+            <button
+              disabled={uploading}
+              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+            >
+              {uploading ? 'Processing Document...' : 'Select file'}
+            </button>
+
+            {uploading && (
+              <div className="mt-8 flex items-center gap-3 animate-pulse">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100"></div>
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">AI is creating your notes</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Study Library (Existing Documents) */}
       <div className="mt-12">
