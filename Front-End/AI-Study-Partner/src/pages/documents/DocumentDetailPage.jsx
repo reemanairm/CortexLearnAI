@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Send,
@@ -16,7 +16,8 @@ import {
   Trash2,
   Edit2,
   X,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import documentService from '../../services/documentservice';
@@ -49,23 +50,26 @@ const DocumentDetailPage = () => {
   useEffect(() => {
     fetchDocument();
     fetchChatHistory();
-    
+
     // Poll for document processing status updates
     const pollInterval = setInterval(async () => {
       try {
         const res = await documentService.getDocumentById(id);
         const doc = res.data;
         setDocument(doc);
-        
+
         // Stop polling if document is ready or failed
         if (doc.status === 'ready' || doc.status === 'failed') {
           clearInterval(pollInterval);
+          if (doc.status === 'ready') {
+            toast.success('Document processing complete!');
+          }
         }
       } catch (error) {
         console.error('Polling error:', error);
       }
     }, 3000); // Poll every 3 seconds
-    
+
     return () => clearInterval(pollInterval);
   }, [id]);
 
@@ -78,7 +82,13 @@ const DocumentDetailPage = () => {
       setLoading(true);
       const res = await documentService.getDocumentById(id);
       // backend returns fileName (camelCase) – normalize for UI
+      console.log('Document fetched:', res.data);
       setDocument(res.data);
+      
+      // If document failed, show error
+      if (res.data.status === 'failed') {
+        toast.error(`Processing failed: ${res.data.errorReason || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Error fetching document:', error);
       toast.error('Failed to load document');
@@ -291,13 +301,23 @@ const DocumentDetailPage = () => {
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors duration-700"></div>
 
-          <button
-            onClick={() => navigate('/documents')}
-            className="w-10 h-10 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-300 rounded-full mb-6 transition-all border border-slate-700/50"
-            title="Back to Documents"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => navigate('/documents')}
+              className="w-10 h-10 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-300 rounded-full transition-all border border-slate-700/50"
+              title="Back to Documents"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <button
+              onClick={fetchDocument}
+              disabled={loading}
+              className="w-10 h-10 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-300 rounded-full transition-all border border-slate-700/50 disabled:opacity-50"
+              title="Refresh Status"
+            >
+              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
 
           <div className="flex items-start gap-4 mb-4">
             <div className="p-3 bg-linear-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 rounded-2xl flex-shrink-0">
@@ -305,7 +325,9 @@ const DocumentDetailPage = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white leading-tight break-words">{document.fileName || document.filename}</h1>
-              <p className="text-sm font-medium text-slate-400 mt-1">{document.pageCount} Pages • PDF format</p>
+              <p className="text-sm font-medium text-slate-400 mt-1">
+                {document.pageCount || 0} Pages • PDF format
+              </p>
             </div>
           </div>
 
