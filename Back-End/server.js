@@ -46,8 +46,25 @@ startServer();
 
 //Middleware to handle CORS 
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE",],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:8000',
+      'https://cortexlearnai.onrender.com'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
@@ -95,12 +112,15 @@ app.use(express.static(path.join(__dirname,"../Front-End/AI-Study-Partner/dist")
 
 // 404 Handler
 app.use((req, res) => {
-
   res.status(404).json({
     success: false,
     error: 'Route not found',
     statusCode: 404
+<<<<<<< HEAD
   })
+=======
+  });
+>>>>>>> 88e13d2b545b8dfdf8b5c8e50a7636d8a4e05997
 });
 // server startup is now handled in startServer() above
 

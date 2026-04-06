@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, BarChart3, TrendingUp, Flame, BrainCircuit, Target, CheckCircle2, Award } from 'lucide-react';
+import { BookOpen, BarChart3, TrendingUp, Flame, BrainCircuit, Target, CheckCircle2, Award, Upload, Sparkles as SparklesIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
 import HelpWidget from '../../components/common/HelpWidget';
 import progressService from '../../services/progressService';
+import documentService from '../../services/documentservice';
+import LearningProgressPanel from './LearningProgressPanel';
+
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -51,7 +54,7 @@ const DashboardPage = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       {/* Welcome Hero Section - Glassmorphic */}
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-violet-600/90 to-indigo-600/90 p-8 md:p-10 border border-white/10 shadow-2xl backdrop-blur-sm">
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-violet-600/90 to-indigo-600/90 p-5 md:p-10 border border-white/10 shadow-2xl backdrop-blur-sm">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-3xl mix-blend-overlay"></div>
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-indigo-400/20 blur-2xl"></div>
 
@@ -66,7 +69,7 @@ const DashboardPage = () => {
       </div>
 
       {/* Primary Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
         <StatCard
           title="Total Documents"
           value={overview.totalDocuments || 0}
@@ -171,8 +174,13 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* Learning Progress / Mastery Panel */}
+
+      {/* Learning Progress / Mastery Panel */}
+      <LearningProgressPanel />
+
       {/* Recent Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mt-6 md:mt-10">
         {/* Recent Documents */}
         <div className="bg-slate-900/40 rounded-2xl border border-slate-800/80 p-6 shadow-xl backdrop-blur-sm">
           <div className="flex items-center justify-between mb-6">

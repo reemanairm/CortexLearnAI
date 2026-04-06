@@ -3,24 +3,29 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 dotenv.config();
 
-const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-if (!process.env.GEMINI_API_KEY) {
+// Initialize Gemini API
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
   console.error('FATAL ERROR: GEMINI_API_KEY is not set in environment variables.');
-  process.exit(1);
 }
+
+const ai = new GoogleGenerativeAI(apiKey);
 
 /* ---------------------------------------------------
    Generate Flashcards (Structured JSON)
 --------------------------------------------------- */
 export const generateFlashcards = async (text, count = 10, fileData = null) => {
-  const prompt = `You are an expert flashcard creator. Generate exactly ${count} high-quality educational flashcards.
+  const prompt = `You are an expert educational content creator. Your goal is to generate exactly ${count} high-quality flashcards that COVERS EVERY SINGLE DETAIL in the provided text.
   
+  CRITICAL INSTRUCTIONS:
+  1. DO NOT SKIP ANY TOPICS. Every paragraph and key fact in the text must be reflected in at least one flashcard.
+  2. Ensure the ${count} flashcards are distributed evenly across the entire provided content to ensure 100% coverage.
+  3. Create comprehensive flashcards that allow a student to learn the entire material from scratch.
+
   IMPORTANT: Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
-  
-  Read the provided document and create comprehensive flashcards based on the key concepts.
-  If text is provided:
-  ${text ? text.substring(0, 20000) : "No text provided, rely on the document file."}`;
+
+  Read the provided document and create comprehensive flashcards based on the key concepts:
+  ${text ? "Text context:\n" + text.substring(0, 20000) : "No text provided, rely on the document file."}`;
 
   const schema = {
     type: SchemaType.ARRAY,
@@ -36,31 +41,31 @@ export const generateFlashcards = async (text, count = 10, fileData = null) => {
   };
 
   try {
+    console.log('[Gemini] Generating flashcards, count:', count, 'text length:', text?.length || 0);
     const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-flash', // upgraded from flash-lite for better multimodal reasoning
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
       }
     });
 
-    const contentParts = [prompt];
-    // If a file was uploaded and passed in, use it for multimodal context
-    if (fileData) {
-      contentParts.push(fileData);
-    }
-
-    const result = await model.generateContent(contentParts);
-    let flashcards = JSON.parse(result.response.text());
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[Gemini] Raw response:', responseText.substring(0, 200));
+    
+    let flashcards = JSON.parse(responseText);
 
     if (!Array.isArray(flashcards)) {
       flashcards = flashcards.flashcards || [];
     }
 
+    console.log('[Gemini] Flashcards generated:', flashcards.length);
     return flashcards.slice(0, count);
   } catch (error) {
-    console.error('Gemini API (Flashcards) error:', error);
-    throw new Error('Failed to generate flashcards');
+    console.error('[Gemini] Flashcards API error:', error.message);
+    console.error('[Gemini] Error details:', error);
+    throw new Error(`Gemini API Error: ${error.message}`);
   }
 };
 
@@ -69,13 +74,17 @@ export const generateFlashcards = async (text, count = 10, fileData = null) => {
 --------------------------------------------------- */
 export const generateQuiz = async (text, numQuestions = 5, difficultyPref = "medium", fileData = null) => {
   const prompt = `
-Generate exactly ${numQuestions} multiple choice questions from the provided document.
-The overall difficulty tone of the questions should be focused on: ${difficultyPref}.
+Generate exactly ${numQuestions} multiple choice questions that COVERS EVERY SINGLE DETAIL, CONCEPT, AND FACT in the provided text.
+
+CRITICAL INSTRUCTIONS:
+1. FULL COVERAGE: Every part of the document must be tested. Ensure the questions are spread across the entire content.
+2. The overall difficulty tone of the questions should be focused on: ${difficultyPref}.
+3. Each question must be unique and technically accurate based on the context.
 
 IMPORTANT: Return ONLY a raw JSON array. DO NOT use markdown blocks like \`\`\`json.
 
 If text is provided:
-${text ? text.substring(0, 15000) : "No text provided, rely on the document file."}
+${text ? "Text context:\n" + text.substring(0, 15000) : "No text provided, rely on the document file."}
 `;
 
   const schema = {
@@ -92,12 +101,14 @@ ${text ? text.substring(0, 15000) : "No text provided, rely on the document file
         correctAnswer: { type: SchemaType.STRING, description: "The exact text of the correct option." },
         explanation: { type: SchemaType.STRING, description: "Brief explanation of why the answer is correct." },
         difficulty: { type: SchemaType.STRING, enum: ["easy", "medium", "hard"] },
+        topic: { type: SchemaType.STRING, description: "The specific sub-topic or concept this question tests (e.g., 'Array Methods', 'CSS Flexbox')." },
       },
-      required: ["question", "options", "correctAnswer", "explanation", "difficulty"],
+      required: ["question", "options", "correctAnswer", "explanation", "difficulty", "topic"],
     },
   };
 
   try {
+    console.log('[Gemini] Generating quiz, questions:', numQuestions, 'difficulty:', difficultyPref, 'text length:', text?.length || 0);
     const model = ai.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: {
@@ -106,23 +117,22 @@ ${text ? text.substring(0, 15000) : "No text provided, rely on the document file
       }
     });
 
-    const contentParts = [prompt];
-    // If a file was uploaded and passed in, use it for multimodal context
-    if (fileData) {
-      contentParts.push(fileData);
-    }
-
-    const result = await model.generateContent(contentParts);
-    let questions = JSON.parse(result.response.text());
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[Gemini] Raw response:', responseText.substring(0, 200));
+    
+    let questions = JSON.parse(responseText);
 
     if (!Array.isArray(questions)) {
       questions = questions.questions || [];
     }
 
+    console.log('[Gemini] Questions generated:', questions.length);
     return questions.slice(0, numQuestions);
   } catch (error) {
-    console.error('Gemini API (Quiz) error:', error);
-    throw new Error('Failed to generate quiz');
+    console.error('[Gemini] Quiz API error:', error.message);
+    console.error('[Gemini] Error details:', error);
+    throw new Error(`Gemini API Error: ${error.message}`);
   }
 };
 
@@ -138,18 +148,16 @@ ${text ? "Text context:\n" + text.substring(0, 20000) : ""}
 `;
 
   try {
+    console.log('[Gemini] Generating summary, text length:', text?.length || 0);
     const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const contentParts = [prompt];
-    // If a file was uploaded and passed in, use it for multimodal context
-    if (fileData) {
-      contentParts.push(fileData);
-    }
-
-    const result = await model.generateContent(contentParts);
-    return result.response.text();
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[Gemini] Summary generated, length:', responseText?.length || 0);
+    return responseText;
   } catch (error) {
-    console.error('Gemini API (Summary) error:', error);
-    throw new Error('Failed to generate summary');
+    console.error('[Gemini] Summary API error:', error.message);
+    console.error('[Gemini] Error details:', error);
+    throw new Error(`Gemini API Error: ${error.message}`);
   }
 };
 // ---- Chat with Document Context ----
@@ -204,11 +212,67 @@ ${context.substring(0, 10000)}
 `;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error) {
     console.error('Gemini API error:', error);
     throw new Error('Failed to explain concept');
+  }
+};
+
+/* ---------------------------------------------------
+   Detect Chapters or Topics
+--------------------------------------------------- */
+export const detectChapters = async (text) => {
+  const prompt = `
+Analyze the following document and divide it into a minimum of 3 and a maximum of 8 logical chapters/topics. 
+CRITICAL: You MUST provide a structured breakdown regardless of the document type.
+
+Rules for splitting:
+1. If the document has clear headings (e.g., "# Chapter 1", "Introduction"), use those as the primary chapters.
+2. If it is a Coding/Program file: Each complete program, class, or large function block must be its own chapter titled by the program's purpose.
+3. If it is a set of Q&A or Exercises: Group every 5 questions into a "Section".
+4. If it is unstructured prose/paragraphs: Divide it into 4 equal sections titled "Part 1: [Topic]", "Part 2: [Topic]", etc., based on the narrative flow.
+
+Structure required for EACH chapter:
+- title: A descriptive and engaging name.
+- summary: A 2-sentence overview.
+- startQuote: The first ~5-10 words of the section.
+- endQuote: The last ~5-10 words of the section.
+
+Document Text:
+${text.substring(0, 25000)}
+`;
+
+  const schema = {
+    type: SchemaType.ARRAY,
+    items: {
+      type: SchemaType.OBJECT,
+      properties: {
+        title: { type: SchemaType.STRING },
+        summary: { type: SchemaType.STRING },
+        startQuote: { type: SchemaType.STRING },
+        endQuote: { type: SchemaType.STRING }
+      },
+      required: ["title", "summary", "startQuote", "endQuote"],
+    },
+  };
+
+  try {
+    const model = ai.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+      }
+    });
+    const result = await model.generateContent(prompt);
+    let chapters = JSON.parse(result.response.text());
+    return chapters;
+  } catch (error) {
+    console.error('Gemini API (Chapters) error:', error);
+    // Fallback if AI fails or returns malformed response
+    return [{ title: "General Discussion", summary: "Main topics discussed in this document.", startQuote: "", endQuote: "" }];
   }
 };

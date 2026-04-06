@@ -1,0 +1,71 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --color-primary: #6366f1; /* Indigo 500 */
+} 
+
+@layer base {
+  html {
+    font-family: var(--font-display);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    /* Premium Dark Theme Background */
+    background-color: #020617; /* Slate 950 */
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(339,49%,30%,0.1) 0, transparent 50%);
+    background-attachment: fixed;
+    color: #f8fafc; /* Slate 50 */
+    min-height: 100vh;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0f172a; /* Slate 900 */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #334155; /* Slate 700 */
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569; /* Slate 600 */
+  }
+
+  /* Selection Color */
+  ::selection {
+    background: rgba(99, 102, 241, 0.3); /* Indigo 500 with opacity */
+    color: white;
+  }
+}
+
+/* Global Animations */
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  
+  /* 3D Transform Utilities for Flashcards */
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+}

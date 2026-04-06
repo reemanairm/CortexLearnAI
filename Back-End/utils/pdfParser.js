@@ -8,18 +8,39 @@ import { PDFParse } from 'pdf-parse';
  */
 export const extractTextFromPDF = async (filePath) => {
   try {
+    console.log(`[PDF Parser] Attempting to read PDF from: ${filePath}`);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+      console.log(`[PDF Parser] File exists: ${filePath}`);
+    } catch (accessError) {
+      console.error(`[PDF Parser] File access error: ${filePath}`, accessError.message);
+      throw new Error(`Cannot access file: ${filePath}`);
+    }
+    
     const dataBuffer = await fs.readFile(filePath);
-    // pdf-parse expects a Uint8Array, not a Buffer
-    const parser = new PDFParse(new Uint8Array(dataBuffer));
-    const data = await parser.getText();
+    console.log(`[PDF Parser] File read successfully, size: ${dataBuffer.length} bytes`);
+    
+    // Initialize the parser
+    const parser = new PDFParse({ data: dataBuffer });
+
+    // Extract text and info
+    const info = await parser.getInfo();
+    const textResult = await parser.getText();
+    
+    // Important: Free resources
+    await parser.destroy();
+
+    console.log(`[PDF Parser] PDF parsed successfully: ${info.total} pages, ${textResult.text?.length || 0} characters`);
 
     return {
-      text: data.text,
-      numPages: data.numpages,
-      info: data.info,
+      text: textResult.text,
+      numPages: info.total,
+      info: info.info || {},
     };
   } catch (error) {
-    console.error("PDF parsing error:", error);
-    throw new Error("Failed to extract text from PDF");
+    console.error("[PDF Parser] Error:", error);
+    throw new Error(`PDF Parser Error: ${error.message}`);
   }
 };

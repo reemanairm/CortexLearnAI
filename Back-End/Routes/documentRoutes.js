@@ -1,9 +1,9 @@
 import express from "express";
 import {
-  uploadDocument,
   getDocuments,
   getDocument,
   deleteDocument,
+  uploadDocument
 } from "../controllers/documentController.js";
 import protect from "../middleware/auth.js";
 import upload from "../config/multer.js";

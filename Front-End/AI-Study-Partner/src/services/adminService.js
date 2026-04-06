@@ -1,12 +1,9 @@
 import axiosInstance from '../utils/axiosInstance';
-import { BASE_URL } from '../utils/apiPaths';
-
-// Admin endpoints
-const API_URL = `${BASE_URL}/api/admin`;
+import { API_PATHS } from '../utils/apiPaths';
 
 const getStats = async () => {
     try {
-        const response = await axiosInstance.get(`${API_URL}/stats`);
+        const response = await axiosInstance.get(API_PATHS.ADMIN.STATS);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to fetch admin stats' };
@@ -15,7 +12,7 @@ const getStats = async () => {
 
 const getUsers = async () => {
     try {
-        const response = await axiosInstance.get(`${API_URL}/users`);
+        const response = await axiosInstance.get(API_PATHS.ADMIN.USERS);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to fetch users' };
@@ -24,7 +21,7 @@ const getUsers = async () => {
 
 const deleteUser = async (userId) => {
     try {
-        const response = await axiosInstance.delete(`${API_URL}/user/${userId}`);
+        const response = await axiosInstance.delete(API_PATHS.ADMIN.DELETE_USER(userId));
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to delete user' };
@@ -33,7 +30,7 @@ const deleteUser = async (userId) => {
 
 const getDocuments = async () => {
     try {
-        const response = await axiosInstance.get(`${API_URL}/documents`);
+        const response = await axiosInstance.get(API_PATHS.ADMIN.DOCUMENTS);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to fetch documents' };
@@ -42,7 +39,7 @@ const getDocuments = async () => {
 
 const deleteDocument = async (docId) => {
     try {
-        const response = await axiosInstance.delete(`${API_URL}/document/${docId}`);
+        const response = await axiosInstance.delete(API_PATHS.ADMIN.DELETE_DOC(docId));
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to delete document' };
@@ -51,7 +48,7 @@ const deleteDocument = async (docId) => {
 
 const getHelpRequests = async () => {
     try {
-        const response = await axiosInstance.get(`${API_URL}/help-requests`);
+        const response = await axiosInstance.get(API_PATHS.ADMIN.HELP_REQUESTS);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to fetch help requests' };
@@ -60,7 +57,7 @@ const getHelpRequests = async () => {
 
 const resolveHelpRequest = async (requestId) => {
     try {
-        const response = await axiosInstance.put(`${API_URL}/help-requests/${requestId}/resolve`);
+        const response = await axiosInstance.put(API_PATHS.ADMIN.RESOLVE_HELP(requestId));
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: 'Failed to resolve help request' };

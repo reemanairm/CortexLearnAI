@@ -1,6 +1,7 @@
 import Document from '../models/Document.js';
 import Flashcard from '../models/Flashcard.js';
 import Quiz from '../models/Quiz.js';
+import ChapterProgress from '../models/ChapterProgress.js';
 
 // @desc    Get user learning statistics
 // @route   GET /api/progress/dashboard
@@ -103,8 +104,8 @@ export const getDashboard = async (req, res, next) => {
 
     // 3. Flashcard Mastery
     const masteredFlashcards = flashcardSets.reduce((count, set) => {
-      // Consider a card mastered if reviewed > 2 times and not starred (implying they know it)
-      return count + set.cards.filter(c => c.reviewCount >= 2 && !c.isStarred).length;
+      // Consider a card mastered if it is explicitly marked as learnt
+      return count + set.cards.filter(c => c.isLearnt).length;
     }, 0);
     
     const flashcardMasteryPercentage = totalFlashcards > 0 
@@ -140,4 +141,99 @@ export const getDashboard = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Get progress for all chapters in a document
+// @route   GET /api/progress/document/:documentId/chapters
+// @access  Private
+export const getChapterProgress = async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    const document = await Document.findOne({ _id: documentId, userId: req.user._id });
+    if (!document) return res.status(404).json({ success: false, error: 'Document not found' });
+
+    let progressRecords = await ChapterProgress.find({ userId: req.user._id, documentId });
+
+    // Ensure records exist for all chapters
+    const existingChapterIds = progressRecords.map(p => p.chapterId.toString());
+    const newRecords = [];
+
+    for (const chapter of document.chapters) {
+      if (!existingChapterIds.includes(chapter._id.toString())) {
+        newRecords.push({
+          userId: req.user._id,
+          documentId,
+          chapterId: chapter._id,
+          chapterTitle: chapter.title,
+          status: 'not_started'
+        });
+      }
+    }
+
+    if (newRecords.length > 0) {
+      await ChapterProgress.insertMany(newRecords);
+      progressRecords = await ChapterProgress.find({ userId: req.user._id, documentId });
+    }
+
+    // Attach summary to the response
+    const enrichedProgress = progressRecords.map(record => {
+      const docChapter = document.chapters.id(record.chapterId);
+      return {
+        ...record.toObject(),
+        summary: docChapter ? docChapter.summary : ''
+      };
+    });
+
+    res.status(200).json({ success: true, data: enrichedProgress });
+  } catch (error) { next(error); }
+};
+
+// @desc    Update progress for a specific chapter
+// @route   PUT /api/progress/document/:documentId/chapter/:chapterId
+// @access  Private
+export const updateChapterProgress = async (req, res, next) => {
+  try {
+    const { documentId, chapterId } = req.params;
+    const { status, flashcardsReviewed, quizScore, weakTopics } = req.body;
+
+    let progress = await ChapterProgress.findOne({ userId: req.user._id, documentId, chapterId });
+    if (!progress) {
+       const doc = await Document.findOne({ _id: documentId, userId: req.user._id });
+       if (!doc) return res.status(404).json({ success: false, error: 'Document not found' });
+       const chap = doc.chapters.id(chapterId);
+       if (!chap) return res.status(404).json({ success: false, error: 'Chapter not found' });
+
+       progress = new ChapterProgress({
+           userId: req.user._id, documentId, chapterId, chapterTitle: chap.title
+       });
+    }
+
+    if (status !== undefined) progress.status = status;
+    if (flashcardsReviewed !== undefined) progress.flashcardsReviewed = flashcardsReviewed;
+    if (quizScore !== undefined) {
+      progress.quizScore = quizScore;
+      
+      const Flashcard = (await import('../models/Flashcard.js')).default;
+      const flashcardSet = await Flashcard.findOne({ documentId, chapterId, userId: req.user._id });
+      const learntFlashcards = flashcardSet ? flashcardSet.cards.filter(c => c.isLearnt).length : 0;
+      const totalFlashcards = flashcardSet ? flashcardSet.cards.length : 1; // avoid div by zero
+      
+      progress.totalFlashcards = totalFlashcards;
+      progress.flashcardsReviewed = learntFlashcards;
+
+      if (quizScore >= 70 && (learntFlashcards / totalFlashcards >= 0.9)) {
+        progress.status = 'completed';
+      } else if (quizScore < 70) {
+        progress.status = 'needs_revision';
+      } else {
+        progress.status = 'in_progress';
+      }
+    }
+    if (weakTopics !== undefined) progress.weakTopics = weakTopics;
+
+    progress.lastActivity = Date.now();
+    await progress.save();
+
+    res.status(200).json({ success: true, data: progress });
+  } catch (error) { next(error); }
 };

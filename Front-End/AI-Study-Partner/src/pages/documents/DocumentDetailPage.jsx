@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Send,
-  Zap,
+  Zap as ZapIcon,
   BookOpen,
   MessageCircle,
   ArrowLeft,
@@ -15,13 +15,16 @@ import {
   Eye,
   Trash2,
   Edit2,
-  X
+  X,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import documentService from '../../services/documentservice';
 import aiService from '../../services/aiservice';
 import Loader from '../../components/common/Loader';
 import HelpWidget from '../../components/common/HelpWidget';
+import progressService from '../../services/progressService';
 import { BASE_URL } from '../../utils/apiPaths';
 
 const DocumentDetailPage = () => {
@@ -43,11 +46,34 @@ const DocumentDetailPage = () => {
   const [flashcardQty, setFlashcardQty] = useState(10);
   const [quizQty, setQuizQty] = useState(5);
   const [quizDifficultyPct, setQuizDifficultyPct] = useState(50); // 0-100 range
+  const [chapterProgress, setChapterProgress] = useState([]);
+  const [showMobilePdf, setShowMobilePdf] = useState(false);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     fetchDocument();
     fetchChatHistory();
+
+    // Poll for document processing status updates
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await documentService.getDocumentById(id);
+        const doc = res.data;
+        setDocument(doc);
+
+        // Stop polling if document is ready or failed
+        if (doc.status === 'ready' || doc.status === 'failed') {
+          clearInterval(pollInterval);
+          if (doc.status === 'ready') {
+            toast.success('Document processing complete!');
+          }
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
   }, [id]);
 
   useEffect(() => {
@@ -59,7 +85,33 @@ const DocumentDetailPage = () => {
       setLoading(true);
       const res = await documentService.getDocumentById(id);
       // backend returns fileName (camelCase) – normalize for UI
-      setDocument(res.data);
+      console.log('Document fetched:', res.data);
+      const docData = res.data;
+      
+      // Ensure pageCount is set correctly
+      if (!docData.pageCount && docData.chunks && docData.chunks.length > 0) {
+        docData.pageCount = Math.max(docData.chunks.length, 1);
+      }
+      
+      setDocument(docData);
+      
+      // Fetch progress
+      try {
+        const progRes = await progressService.getChapterProgress(id);
+        setChapterProgress(progRes.data || []);
+      } catch (err) {
+        console.error('Error fetching chapter progress:', err);
+      }
+      
+      // If document failed, show error
+      if (res.data.status === 'failed') {
+        toast.error(`Processing failed: ${res.data.errorReason || 'Unknown error'}`);
+      } else if (res.data.status === 'ready') {
+        // Document is ready but no pageCount - might be old data
+        if (!res.data.pageCount || res.data.pageCount === 0) {
+          console.log('Document ready but pageCount is 0, chunks:', res.data.chunks?.length);
+        }
+      }
     } catch (error) {
       console.error('Error fetching document:', error);
       toast.error('Failed to load document');
@@ -272,13 +324,23 @@ const DocumentDetailPage = () => {
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors duration-700"></div>
 
-          <button
-            onClick={() => navigate('/documents')}
-            className="w-10 h-10 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-300 rounded-full mb-6 transition-all border border-slate-700/50"
-            title="Back to Documents"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => navigate('/documents')}
+              className="w-10 h-10 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-300 rounded-full transition-all border border-slate-700/50"
+              title="Back to Documents"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <button
+              onClick={fetchDocument}
+              disabled={loading}
+              className="w-10 h-10 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-300 rounded-full transition-all border border-slate-700/50 disabled:opacity-50"
+              title="Refresh Status"
+            >
+              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
 
           <div className="flex items-start gap-4 mb-4">
             <div className="p-3 bg-linear-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 rounded-2xl flex-shrink-0">
@@ -286,40 +348,86 @@ const DocumentDetailPage = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white leading-tight break-words">{document.fileName || document.filename}</h1>
-              <p className="text-sm font-medium text-slate-400 mt-1">{document.pageCount} Pages • PDF format</p>
+              <p className="text-sm font-medium text-slate-400 mt-1">
+                {document.pageCount || 0} Pages • PDF format
+              </p>
             </div>
           </div>
 
-          <a
-            href={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-all border border-slate-700 hover:border-slate-600"
-          >
-            <Eye size={18} className="text-slate-400" />
-            Open Original PDF
-          </a>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setShowMobilePdf(!showMobilePdf)}
+              className="lg:hidden w-full py-2.5 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              {showMobilePdf ? <><X size={16} /> Hide Preview</> : <><Eye size={16} /> View Original PDF</>}
+            </button>
+
+            <div className={`w-full h-[300px] lg:h-[400px] bg-slate-800/30 rounded-xl overflow-hidden border border-slate-700/50 ${!showMobilePdf ? 'hidden lg:block' : 'block'}`}>
+              <object
+                data={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
+                type="application/pdf"
+                className="w-full h-full"
+              >
+                <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                  <FileText size={32} className="text-slate-500 mb-2" />
+                  <p className="text-sm text-slate-400">PDF preview is not supported in your browser.</p>
+                  <a 
+                    href={document.filePath || `${BASE_URL}/uploads/documents/${document.fileName || document.filename}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mt-3 text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1"
+                  >
+                    <Eye size={14} /> Open Original PDF instead
+                  </a>
+                </div>
+              </object>
+            </div>
+          </div>
+
+          {document.status === 'failed' && (
+            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-400 leading-tight">Processing Limited</p>
+                <p className="text-xs text-red-300/70 mt-1">Some AI features might be restricted because we couldn't fully analyze this document's structure.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* AI Actions */}
         <div>
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-2 mb-4">AI Generation</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 md:gap-4">
 
             {/* Summary button */}
             <button
               onClick={handleGenerateSummary}
-              disabled={summaryLoading}
-              className="w-full group relative overflow-hidden bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)] text-left"
+              disabled={summaryLoading || document.status !== 'ready'}
+              className={`w-full group relative overflow-hidden bg-slate-900/60 backdrop-blur-md border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 text-left ${
+                document.status !== 'ready' 
+                  ? 'border-slate-800 opacity-50 cursor-not-allowed' 
+                  : summaryLoading 
+                    ? 'border-emerald-500/30 hover:border-emerald-500/50' 
+                    : 'border-slate-800 hover:border-emerald-500/30'
+              }`}
             >
-              <div className={`p-3 rounded-xl transition-colors ${summaryLoading ? 'bg-emerald-500/20' : 'bg-slate-800 group-hover:bg-emerald-500/20'}`}>
+              <div className={`p-3 rounded-xl transition-colors ${
+                summaryLoading 
+                  ? 'bg-emerald-500/20' 
+                  : document.status !== 'ready' 
+                    ? 'bg-slate-800' 
+                    : 'bg-slate-800 group-hover:bg-emerald-500/20'
+              }`}>
                 {summaryLoading ? <Sparkles className="text-emerald-400 animate-spin" size={24} /> : <BookOpen className="text-emerald-400" size={24} />}
               </div>
               <div>
                 <h4 className="font-bold text-white group-hover:text-emerald-300 transition-colors">
-                  {summaryLoading ? 'Generating...' : 'Smart Summary'}
+                  {summaryLoading ? 'Generating...' : document.status !== 'ready' ? 'Processing...' : 'Smart Summary'}
                 </h4>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">Extract key concepts instantly</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  {document.status !== 'ready' ? 'Wait for processing to complete' : 'Extract key concepts instantly'}
+                </p>
               </div>
             </button>
 
@@ -331,32 +439,48 @@ const DocumentDetailPage = () => {
                 max="50"
                 value={flashcardQty}
                 onChange={(e) => setFlashcardQty(Number(e.target.value))}
-                className="w-20 p-2 rounded-md bg-slate-800 text-white text-sm"
+                disabled={document.status !== 'ready'}
+                className={`w-20 p-2 rounded-md bg-slate-800 text-white text-sm ${
+                  document.status !== 'ready' ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 title="Number of flashcards"
               />
               <button
                 onClick={handleGenerateFlashcards}
-                className="w-full group flex-1 bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-purple-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(168,85,247,0.1)] text-left"
+                disabled={isGenerating || document.status !== 'ready'}
+                className={`w-full group flex-1 bg-slate-900/60 backdrop-blur-md border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 text-left ${
+                  document.status !== 'ready' 
+                    ? 'border-slate-800 opacity-50 cursor-not-allowed' 
+                    : 'border-slate-800 hover:border-purple-500/30 hover:-translate-y-1'
+                }`}
               >
                 <div className="p-3 bg-slate-800 group-hover:bg-purple-500/20 rounded-xl transition-colors">
-                  <Zap className="text-purple-400" size={24} />
+                  <ZapIcon className="text-purple-400" size={24} />
                 </div>
                 <div>
                   <h4 className="font-bold text-white group-hover:text-purple-300 transition-colors">Generate Flashcards</h4>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">Create {flashcardQty} bite-sized cards</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    {document.status !== 'ready' ? 'Wait for processing' : `Create ${flashcardQty} bite-sized cards`}
+                  </p>
                 </div>
               </button>
             </div>
 
             {/* Quiz with quantity & difficulty input */}
-            <div className="flex flex-col gap-3 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-4 transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.1)] group">
-              <div className="flex items-center gap-4 cursor-pointer" onClick={handleGenerateQuiz}>
+            <div className={`flex flex-col gap-3 bg-slate-900/60 backdrop-blur-md border rounded-2xl p-4 transition-all duration-300 group ${
+              document.status !== 'ready' 
+                ? 'border-slate-800 opacity-50 cursor-not-allowed' 
+                : 'border-slate-800 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.1)]'
+            }`}>
+              <div className="flex items-center gap-4 cursor-pointer" onClick={() => document.status === 'ready' && handleGenerateQuiz()}>
                 <div className="p-3 bg-slate-800 group-hover:bg-blue-500/20 rounded-xl transition-colors">
                   <BrainCircuit className="text-blue-400" size={24} />
                 </div>
                 <div>
                   <h4 className="font-bold text-white group-hover:text-blue-300 transition-colors">Generate Quiz</h4>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">Test knowledge with {quizQty} questions</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    {document.status !== 'ready' ? 'Wait for processing' : `Test knowledge with ${quizQty} questions`}
+                  </p>
                 </div>
               </div>
 
@@ -393,6 +517,63 @@ const DocumentDetailPage = () => {
           </div>
         </div>
 
+        {/* Chapters & Topics Section */}
+        {document.status === 'processing' && (!document.chapters || document.chapters.length === 0) ? (
+          <div className="mt-4 p-8 bg-slate-900/40 border border-slate-800 rounded-2xl border-dashed flex flex-col items-center text-center">
+            <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h4 className="font-bold text-white mb-1">Generating Chapters...</h4>
+            <p className="text-xs text-slate-500 max-w-[200px]">AI is dividing your document into logical study modules.</p>
+          </div>
+        ) : document.chapters && document.chapters.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-2 mb-4">Topics & Chapters</h3>
+            <div className="flex flex-col gap-3">
+              {document.chapters.map((chapter) => {
+                const prog = chapterProgress.find(p => p.chapterId === chapter._id);
+                const isCompleted = prog?.status === 'completed';
+                const isInProgress = prog?.status === 'in_progress' || prog?.status === 'needs_revision';
+                
+                return (
+                  <div key={chapter._id} className={`bg-slate-900/60 backdrop-blur-md border ${isCompleted ? 'border-emerald-500/30' : 'border-slate-800'} rounded-xl p-4 hover:border-indigo-500/30 transition-all group shadow-sm shadow-slate-900/50 relative overflow-hidden`}>
+                    {isCompleted && (
+                       <div className="absolute top-2 right-2 text-emerald-500 animate-in fade-in zoom-in duration-500">
+                          <CheckCircle2 size={16} />
+                       </div>
+                    )}
+                    <h4 className="font-bold text-white text-sm mb-1 pr-6">{chapter.title}</h4>
+                    <p className="text-xs text-slate-400 mb-3 line-clamp-2 leading-relaxed">{chapter.summary}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}`)}
+                        className={`flex-2 ${isCompleted ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'} hover:bg-opacity-20 text-xs font-bold py-2 px-3 rounded-lg transition-colors border flex items-center justify-center gap-1.5`}
+                      >
+                        {isCompleted ? (
+                           <>Re-learn</>
+                        ) : isInProgress ? (
+                           <>Continue Learning</>
+                        ) : (
+                           <>Start Learning</>
+                        )}
+                      </button>
+                      
+                      {/* Revision button only if 20% progress threshold is met AND quiz attended */}
+                      {((prog?.totalFlashcards > 0 && (prog?.flashcardsReviewed / prog?.totalFlashcards) >= 0.2) || prog?.quizScore !== null) && (
+                        <button
+                          onClick={() => navigate(`/documents/${document._id}/learning/${chapter._id}?mode=revision`)}
+                          className={`flex-1 ${prog?.status === 'needs_revision' ? 'bg-orange-500/20 border-orange-500/40 animate-pulse' : 'bg-orange-500/10 border-orange-500/20'} hover:bg-orange-500/20 text-orange-400 text-xs font-bold py-2 rounded-lg transition-colors border flex items-center justify-center gap-1.5`}
+                          title={prog?.status === 'needs_revision' ? 'Review weak areas detected from quiz' : 'Targeted Revision'}
+                        >
+                          Revision
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Right Area: Chat & Summary */}
@@ -404,8 +585,8 @@ const DocumentDetailPage = () => {
 
         {/* If showing summary, overlay it on top */}
         {showSummary && summary && (
-          <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md p-6 sm:p-10 overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
-            <div className="max-w-3xl mx-auto">
+          <div className="fixed inset-0 lg:absolute lg:inset-0 z-[60] lg:z-20 bg-slate-950/98 lg:bg-slate-900/95 backdrop-blur-xl p-6 sm:p-10 overflow-y-auto animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center justify-start pt-20 lg:pt-10">
+            <div className="w-full max-w-3xl">
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500/20 rounded-lg">

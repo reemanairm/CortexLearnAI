@@ -11,6 +11,10 @@ const flashcardSchema = new mongoose.Schema({
     ref: 'Document',
     required: true
   },
+  chapterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false
+  },
   title: {
     type: String,
     default: 'Untitled Flashcard Set'
@@ -38,6 +42,18 @@ const flashcardSchema = new mongoose.Schema({
       default: null
     },
     isStarred: {
+      type: Boolean,
+      default: false
+    },
+    timeSpent: {
+      type: Number,
+      default: 0
+    },
+    isLearnt: {
+      type: Boolean,
+      default: false
+    },
+    savedForRevision: {
       type: Boolean,
       default: false
     }

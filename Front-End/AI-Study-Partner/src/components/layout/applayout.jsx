@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, User, BookOpen, Zap, BarChart3, BrainCircuit, Shield, HelpCircle } from 'lucide-react';
+import { Menu, X, LogOut, User, BookOpen, Zap as ZapIcon, BarChart3, BrainCircuit, Shield, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -40,7 +40,7 @@ const AppLayout = ({ children }) => {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/documents', label: 'Documents', icon: BookOpen },
-    { path: '/flashcards', label: 'Flashcards', icon: Zap },
+    { path: '/flashcards', label: 'Flashcards', icon: ZapIcon },
     { path: '/quizzes', label: 'Quizzes', icon: BrainCircuit },
     { path: '/help-history', label: 'Help History', icon: HelpCircle },
     // Conditionally render admin link
@@ -65,10 +65,10 @@ const AppLayout = ({ children }) => {
           }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3 shrink-0 h-20">
+        <div className="p-4 md:p-6 border-b border-slate-800 flex items-center gap-3 shrink-0 h-16 md:h-20">
           <BrainCircuit size={28} className="text-indigo-400 shrink-0" />
           <h1 className={`text-xl font-bold tracking-tight text-white whitespace-nowrap transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden md:block md:w-0'}`}>
-            AI Study
+            CortexLearn AI
           </h1>
           {/* Mobile close button inside sidebar */}
           {isMobile && sidebarOpen && (
@@ -133,7 +133,7 @@ const AppLayout = ({ children }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
-        <header className="h-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <header className="h-16 md:h-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
