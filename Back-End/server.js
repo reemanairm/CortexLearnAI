@@ -116,13 +116,8 @@ app.use((req, res) => {
     success: false,
     error: 'Route not found',
     statusCode: 404
-<<<<<<< HEAD
   })
-=======
   });
->>>>>>> 88e13d2b545b8dfdf8b5c8e50a7636d8a4e05997
-});
-// server startup is now handled in startServer() above
 
 process.on('unhandledRejection', (err) => {
   console.error(`Unhandled rejection: ${err.message}`);
